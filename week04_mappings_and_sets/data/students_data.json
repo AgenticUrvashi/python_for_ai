@@ -22,6 +22,11 @@
                 "bio":{"sem1":46,"sem2":67},
                 "chem":{"sem1":91,"sem2":56},
                 "maths":{"sem1":76,"sem2":89}
+    },
+    "janu":{
+                "phy":{"sem1":68,"sem2":57},
+                "bio":{"sem1":46,"sem2":67},
+                "chem":{"sem1":91,"sem2":56},
+                "maths":{"sem1":76,"sem2":89}
     }
-
 }
