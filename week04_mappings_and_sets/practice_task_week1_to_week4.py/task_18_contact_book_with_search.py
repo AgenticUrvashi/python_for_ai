@@ -15,13 +15,19 @@
 print("==================================== contact book with search ==================================")
 
 contacts = {
-  "Asha":  {"phone": "98765", "city": "Mumbai"},
+    "Asha":  {"phone": "98765", "city": "Mumbai"},
 
     "Rahul": {"phone": "91234", "city": "Delhi"},
+
+    "mohan": {"phone": "87234", "city": "indor"},
+
+    "radha": {"phone": "87432", "city": "nagpur"}
 }
 
 
 user_input = input("enter the contact name: ")
+
+print("------------------------------------------------------------------------------------------------")
 
 if contacts.get(user_input):
 
