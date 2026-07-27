@@ -13,5 +13,3 @@ student = {
     "age": 17,
     "city": "Mumbai",
 }
-
-new = sorted(student)
