@@ -444,6 +444,7 @@ for a, b in pairs:
 
 print(total)
 
+
 # Q33
 # EN: Trace the dictionary being built. 
 # HI: Banti hui dictionary trace karo.
@@ -461,6 +462,8 @@ for c in "aabbbc":
         counts[c] = 1
 
 print(counts)
+
+
 # Q34
 # EN: Nested loop + vowel check. How many vowels total? 
 # HI: Nested loop + vowel check. Total kitne vowels?
@@ -554,4 +557,33 @@ nums = [1, 2, 3, 4, 5, 6]
 evens = {n for n in nums if n % 2 == 0}
 
 print(evens)
+
+# class homework #
+
+# Q1:
+x = 10
+for i in range(3):
+    x=x-2
+print(x)
+
+# Q2:
+result = ""
+for c in "cat":
+    result = c + result
+print(result)
+
+# Q3:
+nums=[4,1,7,8]
+biggest = nums[0]
+for i in nums:
+    if n>biggest:
+        biggest=n
+print(biggest)
+
+# Q4:
+s = 0
+for i in range(1,6):
+    if i % 2 == 0:
+        s = s + i
+print(s)
 

@@ -44,7 +44,6 @@ for student in students_copy:
     else:
         grade ="D"
 
-    # print(f"name:{(student["name"])}, grade: {grade}")
 
     student["total"]= total
     student["avg"]= avgerage
