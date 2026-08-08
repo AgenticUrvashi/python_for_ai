@@ -13,15 +13,15 @@
 
 # translate:
 class Temperature:
-    def __init__(self,temp):
-        self.temp = temp
+    def __init__(self,_celsius):
+        self._celsius = _celsius
 
     def set_celsius(self):
-        if self.temp < -273:
+        if self._celsius < -273:
             print("invalid")
 
-        if self.temp > -273:
-            print((self.temp - 32) * 5 / 9)
+        if self._celsius > -273:
+            print((self._celsius - 32) * 5 / 9)
 
 Temp1 = Temperature(-110)
 

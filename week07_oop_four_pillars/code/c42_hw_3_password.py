@@ -13,11 +13,11 @@
 
 # translate:
 class Password:
-    def __init__(self,password):
-        self.password = password
+    def __init__(self,_password):
+        self._password = _password
 
     def check(self,guess):
-        if self.password == guess:
+        if self._password == guess:
             print(True)
         else:
             print(False)
