@@ -1,0 +1,101 @@
+'Use agent mein add karke use_tool("reverse", "hello") test karo.'
+
+# restate:que 1 ko use karke dikhao.
+
+# example: text = hello 
+
+# pseudocode:
+            # after adding code, write agent = Agent("Jarvis")
+            # 2.agent.add_tool(ReverseTool)
+            # 3.print(agent.use_tool("reverse","hello"))
+
+from abc import ABC, abstractmethod
+
+
+class Tool(ABC):
+    """Base class — har tool ka naam, description aur run() hona zaroori."""
+    def __init__(self, name: str, description: str):
+        self.name = name
+        self.description = description
+
+    @abstractmethod
+    def run(self, *args):
+        ...
+
+    def __repr__(self):
+        return f"Tool(name='{self.name}')"
+
+
+class CalculatorTool(Tool):
+    def __init__(self):
+        super().__init__("calculator", "Adds two numbers")
+
+    def run(self, a: float, b: float) -> float:
+        return a + b
+
+
+class GreetTool(Tool):
+    def __init__(self):
+        super().__init__("greet", "Greets a person by name")
+
+    def run(self, name: str) -> str:
+        return f"Hello, {name}!"
+
+'-----------------------------add kiya hua-------------------------------'
+
+class ReverseTool(Tool):
+    def __init__(self):
+        super().__init__("reverse", "reverse the string")
+
+    def run(self,text):
+        word = ""
+        for i in text:
+            word = i + word 
+        return word
+
+'--------------------------------------------------------------------------'
+
+class Agent:
+    """An agent HAS-A list of tools (composition)."""
+    def __init__(self, name: str):
+        self.name = name
+        self.tools = []           
+
+    def add_tool(self, tool: Tool):
+        self.tools.append(tool)
+
+    def list_tools(self):
+        print(f"{self.name}'s tools:")
+        for tool in self.tools:
+            print(f"  - {tool.name}: {tool.description}")
+
+    def use_tool(self, tool_name: str, *args):
+        for tool in self.tools:
+            if tool.name == tool_name:   
+                return tool.run(*args)
+        return f"Tool '{tool_name}' not found"
+
+
+# --- agent banao aur use karo ---
+agent = Agent("Jarvis")
+agent.add_tool(CalculatorTool())
+agent.add_tool(GreetTool())
+agent.add_tool(ReverseTool())
+
+agent.list_tools()
+
+
+print(agent.use_tool("calculator", 5, 3))   
+print(agent.use_tool("greet", "Asha"))      
+print(agent.use_tool("unknown"))  
+print(agent.use_tool("reverse","hello"))         
+
+# dry run:
+# Jarvis's tools:
+#   - calculator: Adds two numbers  
+#   - greet: Greets a person by name
+#   - reverse: reverse the string   
+# 8
+# Hello, Asha!
+# Tool 'unknown' not found
+# olleh
