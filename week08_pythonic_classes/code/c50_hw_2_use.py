@@ -78,24 +78,11 @@ class Agent:
 
 # --- agent banao aur use karo ---
 agent = Agent("Jarvis")
-agent.add_tool(CalculatorTool())
-agent.add_tool(GreetTool())
 agent.add_tool(ReverseTool())
 
-agent.list_tools()
-
-
-print(agent.use_tool("calculator", 5, 3))   
-print(agent.use_tool("greet", "Asha"))      
-print(agent.use_tool("unknown"))  
 print(agent.use_tool("reverse","hello"))         
 
 # dry run:
 # Jarvis's tools:
-#   - calculator: Adds two numbers  
-#   - greet: Greets a person by name
 #   - reverse: reverse the string   
-# 8
-# Hello, Asha!
-# Tool 'unknown' not found
 # olleh

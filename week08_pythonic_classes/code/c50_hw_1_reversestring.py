@@ -75,15 +75,3 @@ class Agent:
                 return tool.run(*args)
         return f"Tool '{tool_name}' not found"
 
-
-# --- agent banao aur use karo ---
-agent = Agent("Jarvis")
-agent.add_tool(CalculatorTool())
-agent.add_tool(GreetTool())
-
-agent.list_tools()
-
-
-print(agent.use_tool("calculator", 5, 3))   
-print(agent.use_tool("greet", "Asha"))      
-print(agent.use_tool("unknown"))           
