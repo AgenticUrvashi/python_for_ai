@@ -1,3 +1,1 @@
-134:Riya
-101:Urvashi
-102:Priyanshu
+101:urvashi:94:81:89
