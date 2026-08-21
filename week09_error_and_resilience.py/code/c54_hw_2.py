@@ -1,1 +1,0 @@
-'Ek custom exception NegativeNumberError banao aur ek function jo negative pr use raise kare.'

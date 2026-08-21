@@ -1,1 +1,0 @@
-'Ek function set_marks(m) jo 0 - 100 ke bahar value par Valueerror raise kare.'
