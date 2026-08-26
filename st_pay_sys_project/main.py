@@ -1,6 +1,6 @@
 from get_valid_marks import get_valid_marks
-from process_payment_with_retry import process_payment_with_retry
-from bank_balance import get_valid_bank_balance
+# from process_payment_with_retry import process_payment_with_retry
+# from bank_balance import get_valid_bank_balance
 from bank_balance import valid_sub_fee
 
 class InsufficientBalanceError(Exception):

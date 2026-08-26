@@ -1,0 +1,5 @@
+hello, you are my first file.
+this is second line.
+you are learning python with Indian AI Production.This text append by append mode.
+This text append by append mode.
+This text append by append mode.

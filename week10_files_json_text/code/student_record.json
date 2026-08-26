@@ -1,0 +1,9 @@
+{
+   "name": "Asha",
+   "age": 17,
+   "sub": [
+      "math",
+      "sci"
+   ],
+   "is_student": true
+}
