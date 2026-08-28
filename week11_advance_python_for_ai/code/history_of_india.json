@@ -1,0 +1,57 @@
+{
+    "title": "🇮🇳 History of India - Easy Timeline",
+    "history": [
+      {
+        "period": "Indus Valley Civilization",
+        "time": "c. 2500-1900 BCE",
+        "description": "It was one of the earliest civilizations in India. Famous cities included Harappa, Mohenjo-daro, and Dholavira. People had well-planned cities, drainage systems, and trade."
+      },
+      {
+        "period": "Vedic Period",
+        "time": "c. 1500-600 BCE",
+        "description": "The Vedas were composed during this period. Religion, society, and political systems developed."
+      },
+      {
+        "period": "Mahajanapadas, Buddhism & Jainism",
+        "time": "c. 600-300 BCE",
+        "description": "There were 16 major Mahajanapadas. Gautama Buddha founded Buddhism. Mahavira was the major teacher of Jainism."
+      },
+      {
+        "period": "Maurya Empire",
+        "time": "c. 322-185 BCE",
+        "description": "Chandragupta Maurya founded the Maurya Empire. Ashoka was one of its most famous rulers. After the Kalinga War, Ashoka supported Buddhism."
+      },
+      {
+        "period": "Gupta Empire",
+        "time": "c. 320-550 CE",
+        "description": "This period is often called the Golden Age of ancient India. Science, mathematics, astronomy, art, and literature developed greatly. Aryabhata was an important mathematician and astronomer."
+      },
+      {
+        "period": "Medieval India",
+        "time": "c. 600-1700 CE",
+        "description": "Many powerful kingdoms existed, including the Cholas, Pallavas, and Rajputs. The Delhi Sultanate ruled large parts of northern India. Later, the Mughal Empire became powerful."
+      },
+      {
+        "period": "Mughal Empire",
+        "time": "1526-1857",
+        "description": "Babur founded the Mughal Empire in 1526. Famous rulers included Akbar, Jahangir, Shah Jahan, and Aurangzeb. The Taj Mahal was built during Shah Jahan's reign."
+      },
+      {
+        "period": "British Rule",
+        "time": "1757-1947",
+        "description": "The British East India Company gradually gained control over India. After the Revolt of 1857, India came directly under the British Crown. Many leaders participated in the freedom movement, including Mahatma Gandhi, Jawaharlal Nehru, Subhas Chandra Bose, and Bhagat Singh."
+      },
+      {
+        "period": "Independence",
+        "time": "1947",
+        "description": "India became independent on 15 August 1947. Jawaharlal Nehru became the first Prime Minister of independent India."
+      },
+      {
+        "period": "Republic of India",
+        "time": "1950",
+        "description": "The Constitution was adopted on 26 November 1949. It came into effect on 26 January 1950. India officially became a Republic."
+      }
+    ],
+    "timeline": "Indus Valley → Vedic Period → Mahajanapadas → Maurya → Gupta → Medieval Kingdoms → Delhi Sultanate → Mughals → British Rule → Independence (1947) → Republic (1950)",
+    "thank_you": "THANK YOU"
+  }
