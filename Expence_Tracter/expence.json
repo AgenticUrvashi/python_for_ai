@@ -14,10 +14,10 @@
         "user_date": "29/08/2026"
     },
     {
-        "user_id": "3",
+        "user_id": "4",
         "user_title": "Train",
-        "user_amount": "200",
-        "user_catagery": "traval",
-        "user_date": "30/08/2026"
+        "user_amount": 1200,
+        "user_catagery": "Traval",
+        "user_date": "28/08/2026"
     }
 ]
