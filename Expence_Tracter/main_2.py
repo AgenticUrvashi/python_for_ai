@@ -1,3 +1,5 @@
+from load_expenses import load_expenses
+from save_expenses import save_expences
 from add_expenses import add_expense
 from view_expences import view_expences
 from search_expenses import search_expense
@@ -24,7 +26,10 @@ while True:
         continue
 
     if choice == 1:
-        add_expense()
+        expenses = load_expenses()
+        new_expense = add_expense()
+        expenses.append(new_expense)
+        save_expences(expenses)
         
     elif choice == 2:
         view_expences()
@@ -47,3 +52,5 @@ while True:
         
     else:
         print("Invalid input...")
+
+print("="*75)

@@ -1,12 +1,33 @@
+from load_expenses import load_expenses
+
+
 def add_expense():
 
-    user_id = input("enter your id: ")
+    while True:
+        user_id = input("enter your id: ")
+
+        expences = load_expenses()
+
+        for expense in expences:
+            if expense["user_id"] == user_id:
+                print("ID already exists!")
+                break
+
+        else:
+            break
+
     user_title = input("enter title: ")
 
     while True:
         try:
             user_amount = int(input("enter amount: "))
+
+            if user_amount < 0:
+                print("Amount cannot be negative!")
+                continue
+
             break
+        
         except ValueError:
             print("Please enter a valid amount!")
 
