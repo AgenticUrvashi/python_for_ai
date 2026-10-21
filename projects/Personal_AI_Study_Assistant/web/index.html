@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudySync Pro - AI-Powered Learning Platform</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- SVG GRADIENTS FOR DONUT CHART -->
+  <svg width="0" height="0" style="position: absolute;">
+    <defs>
+      <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#06b6d4" />
+        <stop offset="100%" stop-color="#3b82f6" />
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <div class="app-container">
+    <!-- LEFT HERO PROMO BANNER -->
+    <aside class="hero-banner">
+      <div>
+        <div class="hero-header">
+          <div class="hero-badge-number">⚡</div>
+          <div class="hero-title-group">
+            <h1>StudySync <span class="badge-pro">PRO</span></h1>
+          </div>
+        </div>
+        <p class="hero-subtitle">High-Speed AI Study Platform</p>
+
+        <div class="hero-features-list">
+          <div class="hero-feature-item">
+            <span class="hero-feature-icon">🚀</span>
+            <span>Groq Qwen 3.8 (27B) Engine</span>
+          </div>
+          <div class="hero-feature-item">
+            <span class="hero-feature-icon">📄</span>
+            <span>Deep Document & Notes Analysis</span>
+          </div>
+          <div class="hero-feature-item">
+            <span class="hero-feature-icon">❓</span>
+            <span>Dynamic AI Quiz Generator</span>
+          </div>
+          <div class="hero-feature-item">
+            <span class="hero-feature-icon">📇</span>
+            <span>Interactive 3D Flashcards</span>
+          </div>
+          <div class="hero-feature-item">
+            <span class="hero-feature-icon">⏱️</span>
+            <span>Pomodoro Focus Timer</span>
+          </div>
+          <div class="hero-feature-item">
+            <span class="hero-feature-icon">📊</span>
+            <span>Real-time Learning Analytics</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3D BOOK & HOLOGRAPHIC BRAIN GRAPHIC -->
+      <div class="hero-graphic-card">
+        <img src="/assets/studysync_hero.jpg" alt="AI Brain and Open Book 3D Hologram" class="hero-graphic-img">
+        <div class="hero-graphic-badge" id="heroGroqBadge">⚡ Powered by Groq AI</div>
+      </div>
+    </aside>
+
+    <!-- MAIN APP WINDOW -->
+    <div class="main-layout">
+      <!-- TOP NAVIGATION BAR -->
+      <header class="top-nav">
+        <div class="top-brand">
+          <div class="brand-icon">⚡</div>
+          <span>StudySync <span class="badge-pro-small">PRO</span></span>
+        </div>
+
+        <div class="search-box-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="globalSearchInput" class="search-input" placeholder="Ask any academic topic (e.g. Binary Search, Calculus, Photosynthesis)...">
+        </div>
+
+        <div class="top-actions">
+          <!-- LIVE GROQ STATUS BADGE -->
+          <div class="groq-pill" id="topGroqBadge" title="Groq AI Inference Engine Status">
+            <span class="groq-pulse-dot"></span>
+            <span id="topGroqModelText">Groq: Qwen 3.8 27B</span>
+          </div>
+
+          <!-- POMODORO QUICK TIMER BUTTON -->
+          <button class="top-timer-chip" id="btnPomodoroTop" title="Pomodoro Focus Timer">
+            <span>⏱️</span>
+            <span id="topPomodoroText">25:00</span>
+          </button>
+
+          <button class="icon-btn" id="notifBtn" title="Notifications">
+            🔔
+            <span class="notification-dot"></span>
+          </button>
+          
+          <div class="user-profile-badge" id="profileBadge" title="Click to view profile or change settings">
+            <div class="avatar-img" id="topAvatarImg">S</div>
+            <span class="avatar-name" id="topAvatarName">Student</span>
+          </div>
+        </div>
+
+        <!-- NOTIFICATIONS DROPDOWN -->
+        <div class="notifications-dropdown" id="notifDropdown">
+          <div style="font-weight: 700; margin-bottom: 8px; font-size: 0.9rem;">🔔 Study Notifications</div>
+          <div class="notif-item">
+            <strong>⚡ Groq Engine Active</strong><br>
+            <span style="color: var(--text-dim); font-size: 0.75rem;">Model: Qwen 3.8 27B with sub-second response times.</span>
+          </div>
+          <div class="notif-item">
+            <strong>🔥 Study Session Active!</strong><br>
+            <span style="color: var(--text-dim); font-size: 0.75rem;">Your real-time study tracker is recording your session.</span>
+          </div>
+          <div class="notif-item">
+            <strong>📝 Quiz Recommended</strong><br>
+            <span style="color: var(--text-dim); font-size: 0.75rem;">Test your knowledge on Python Algorithms.</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- WORKSPACE: SIDEBAR + CONTENT -->
+      <div class="workspace">
+        <!-- SIDEBAR -->
+        <nav class="sidebar">
+          <div class="nav-category">Study Hub</div>
+          <div class="nav-item active" data-tab="dashboard">
+            <span class="nav-icon">📊</span>
+            <span>Dashboard</span>
+          </div>
+          <div class="nav-item" data-tab="tutor">
+            <span class="nav-icon">🤖</span>
+            <span>AI Tutor (Pro)</span>
+          </div>
+          <div class="nav-item" data-tab="quizzes">
+            <span class="nav-icon">📝</span>
+            <span>AI Quizzes</span>
+          </div>
+          <div class="nav-item" data-tab="flashcards">
+            <span class="nav-icon">📇</span>
+            <span>Flashcards</span>
+          </div>
+          <div class="nav-item" data-tab="pomodoro">
+            <span class="nav-icon">⏱️</span>
+            <span>Focus Timer</span>
+          </div>
+          <div class="nav-item" data-tab="library">
+            <span class="nav-icon">📚</span>
+            <span>Document Hub</span>
+          </div>
+          <div class="nav-item" data-tab="analytics">
+            <span class="nav-icon">📈</span>
+            <span>Analytics</span>
+          </div>
+          <div class="nav-item" data-tab="settings">
+            <span class="nav-icon">⚙️</span>
+            <span>Settings & Models</span>
+          </div>
+        </nav>
+
+        <!-- MAIN DASHBOARD CONTENT -->
+        <main class="content-area" id="mainContent">
+          <!-- GREETING -->
+          <div class="greeting-section">
+            <h2 class="greeting-title">Welcome back, <span id="greetingUserName">Student</span>! 👋</h2>
+            <p class="greeting-subtitle">What academic concept or subject do you want to master today?</p>
+          </div>
+
+          <!-- FOUR ACTION CARDS -->
+          <div class="action-cards-grid">
+            <!-- CARD 1: AI TUTOR -->
+            <div class="action-card">
+              <div>
+                <div class="action-icon-box icon-cyan">🤖</div>
+                <h3 class="action-card-title">AI Study Tutor</h3>
+                <p class="action-card-desc">Ask doubts, derivations, or code with Groq Qwen AI</p>
+              </div>
+              <button class="btn-primary" id="btnTutorCard">
+                <span>Ask AI Tutor</span>
+              </button>
+            </div>
+
+            <!-- CARD 2: DYNAMIC QUIZ GENERATOR -->
+            <div class="action-card">
+              <div>
+                <div class="action-icon-box icon-pink">📝</div>
+                <h3 class="action-card-title">Generate AI Quiz</h3>
+                <p class="action-card-desc">Practice custom MCQs on any subject with live scoring</p>
+              </div>
+              <button class="btn-primary" id="btnQuizCard">
+                <span>Practice Quiz</span>
+              </button>
+            </div>
+
+            <!-- CARD 3: FLASHCARDS -->
+            <div class="action-card">
+              <div>
+                <div class="action-icon-box icon-purple">📇</div>
+                <h3 class="action-card-title">Study Flashcards</h3>
+                <p class="action-card-desc">Master formulas and concepts with interactive 3D cards</p>
+              </div>
+              <button class="btn-primary" id="btnFlashcardsCard">
+                <span>Open Flashcards</span>
+              </button>
+            </div>
+
+            <!-- CARD 4: UPLOAD & LEARN -->
+            <div class="action-card">
+              <div>
+                <div class="action-icon-box icon-emerald">📄</div>
+                <h3 class="action-card-title">Document & Notes AI</h3>
+                <p class="action-card-desc">Extract deep summaries, formulas & exam questions</p>
+              </div>
+              <button class="btn-primary" id="btnUploadCard">
+                <span>Analyze Notes</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- BOTTOM SECTION: 2 CARDS -->
+          <div class="bottom-grid">
+            <!-- RECENT DOCUMENTS -->
+            <div class="info-card">
+              <div class="info-card-header">
+                <span class="info-card-title">Recent Study Documents</span>
+                <a class="info-card-link" id="linkViewAllDocs">Analyze New +</a>
+              </div>
+
+              <div class="document-list" id="recentDocsList">
+                <div class="document-item" data-file="Machine Learning Basics.pdf">
+                  <div class="doc-info">
+                    <div class="doc-icon-badge badge-red">📄</div>
+                    <div>
+                      <div class="doc-name">Machine Learning Basics.pdf</div>
+                      <div class="doc-meta">Supervised, Unsupervised & Neural Networks • PDF</div>
+                    </div>
+                  </div>
+                  <div class="doc-time">Active</div>
+                </div>
+
+                <div class="document-item" data-file="Data Structures & Algorithms.pdf">
+                  <div class="doc-info">
+                    <div class="doc-icon-badge badge-blue">📄</div>
+                    <div>
+                      <div class="doc-name">Data Structures & Algorithms.pdf</div>
+                      <div class="doc-meta">Trees, Graphs, Sorting & Complexity • PDF</div>
+                    </div>
+                  </div>
+                  <div class="doc-time">Active</div>
+                </div>
+
+                <div class="document-item" data-file="Python Advanced Notes.txt">
+                  <div class="doc-info">
+                    <div class="doc-icon-badge badge-emerald">📄</div>
+                    <div>
+                      <div class="doc-name">Python Advanced Notes.txt</div>
+                      <div class="doc-meta">OOP, Generators, Decorators & Memory • TXT</div>
+                    </div>
+                  </div>
+                  <div class="doc-time">Active</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- LEARNING PROGRESS & ACTIVE TRACKER -->
+            <div class="info-card">
+              <div class="info-card-header">
+                <span class="info-card-title">Learning Progress & Activity</span>
+                <span id="todayStudyLabel" style="font-size: 0.82rem; color: var(--accent-cyan); font-weight: 700;">Today: 0 mins</span>
+              </div>
+
+              <div class="progress-container">
+                <!-- DONUT CHART -->
+                <div class="donut-wrapper">
+                  <svg class="donut-svg" viewBox="0 0 100 100">
+                    <circle class="donut-bg" cx="50" cy="50" r="42" />
+                    <circle class="donut-fill" id="donutProgressCircle" cx="50" cy="50" r="42" style="stroke-dashoffset: 264;" />
+                  </svg>
+                  <div class="donut-text">
+                    <div class="donut-pct" id="donutProgressText">0%</div>
+                    <div class="donut-sub">Study Mastery</div>
+                  </div>
+                </div>
+
+                <!-- WEEKLY BAR CHART -->
+                <div class="barchart-wrapper">
+                  <div class="bars-row" id="weeklyBarsRow">
+                    <div class="bar-col" id="bar_mon" title="Mon: 0 mins"><div class="bar-fill" style="height: 10%;"></div><span class="bar-label">Mon</span></div>
+                    <div class="bar-col" id="bar_tue" title="Tue: 0 mins"><div class="bar-fill" style="height: 10%;"></div><span class="bar-label">Tue</span></div>
+                    <div class="bar-col" id="bar_wed" title="Wed: 0 mins"><div class="bar-fill" style="height: 10%;"></div><span class="bar-label">Wed</span></div>
+                    <div class="bar-col" id="bar_thu" title="Thu: 0 mins"><div class="bar-fill" style="height: 10%;"></div><span class="bar-label">Thu</span></div>
+                    <div class="bar-col" id="bar_fri" title="Fri: 0 mins"><div class="bar-fill" style="height: 10%;"></div><span class="bar-label">Fri</span></div>
+                    <div class="bar-col" id="bar_sat" title="Sat: 0 mins"><div class="bar-fill" style="height: 10%;"></div><span class="bar-label">Sat</span></div>
+                    <div class="bar-col" id="bar_sun" title="Sun: 0 mins"><div class="bar-fill" style="height: 10%;"></div><span class="bar-label">Sun</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: AI TUTOR (PRO EDITION) -->
+  <div class="modal-overlay" id="modalTutor">
+    <div class="modal-card tutor-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>🤖 StudySync AI Tutor</span>
+          <span class="model-badge-inline" id="chatActiveModelBadge">⚡ Groq: Qwen 3.8 27B</span>
+          <span class="study-guard-badge">Study Only Guardrail Active 🛡️</span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button class="icon-subtle-btn" id="btnExportChat" title="Export study notes to Markdown">💾 Export</button>
+          <button class="icon-subtle-btn" id="btnClearChat" title="Clear chat history">🗑️ Clear</button>
+          <button class="modal-close" data-close="modalTutor">✕</button>
+        </div>
+      </div>
+
+      <!-- PERSONA / STUDY MODE SELECTOR -->
+      <div class="persona-selector-bar">
+        <span class="persona-label">Study Mode:</span>
+        <button class="persona-btn active" data-mode="explainer" title="Intuitive analogies, clear logic & concept breakdown">🎓 Concept Explainer</button>
+        <button class="persona-btn" data-mode="code" title="Code snippets, Big-O complexity & line-by-line breakdown">💻 Code & Debug</button>
+        <button class="persona-btn" data-mode="exam" title="High-yield exam notes, formula sheets & probable questions">📝 Exam Notes</button>
+        <button class="persona-btn" data-mode="math" title="Rigorous step-by-step mathematical derivations">🧮 Math Solver</button>
+      </div>
+
+      <div class="modal-body chat-modal-body">
+        <div class="chat-quick-chips">
+          <span style="font-size: 0.74rem; color: var(--text-dim); align-self: center;">Try Asking:</span>
+          <button class="chip-btn" data-ask="Explain Binary Search algorithm in Python with Big-O complexity">🔍 Binary Search</button>
+          <button class="chip-btn" data-ask="What is the balanced equation for Photosynthesis?">🌿 Photosynthesis</button>
+          <button class="chip-btn" data-ask="Solve: 3x + 15 = 45 and show every derivation step">🧮 Solve: 3x + 15 = 45</button>
+          <button class="chip-btn" data-ask="Recursion kya hota hai simple example ke sath samjhao">🇮🇳 Recursion (Hinglish)</button>
+          <button class="chip-btn test-reject" data-ask="Who is Salman Khan?">🚫 Salman Khan (Guardrail Test)</button>
+          <button class="chip-btn test-reject" data-ask="What is the IPL cricket match score?">🚫 IPL Score (Guardrail Test)</button>
+        </div>
+
+        <div class="chat-messages-container" id="chatMessages">
+          <div class="chat-bubble assistant" id="chatWelcomeMessage">
+            Namaste! Main aapka <strong>StudySync Pro Assistant</strong> hoon, powered by <strong>Groq Qwen 3.8 (27B)</strong>.
+            Main <strong>sirf study, programming, mathematics, science aur exam preparation</strong> se jude sawaalon ke jawab deta hoon.<br><br>
+            Aap upar <em>Study Mode</em> select kar sakte hain (Concept Explainer, Code Tutor, Exam Notes, ya Math Solver) aur mujhse koi bhi academic sawaal poochhein! 📚
+          </div>
+        </div>
+
+        <div class="chat-input-row">
+          <input type="text" id="chatInput" class="chat-input" placeholder="Type your academic or study question here..." />
+          <button class="btn-primary" id="btnSendChat" style="width: auto; padding: 10px 24px;">Send ⚡</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DYNAMIC QUIZ GENERATOR (PRO) -->
+  <div class="modal-overlay" id="modalQuiz">
+    <div class="modal-card quiz-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>📝 AI Practice Quiz Generator</span>
+          <span class="model-badge-inline">⚡ Groq Powered</span>
+        </div>
+        <button class="modal-close" data-close="modalQuiz">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="quiz-controls-grid">
+          <div style="flex: 2;">
+            <label class="control-label">Enter Any Subject or Topic:</label>
+            <input type="text" id="quizCustomTopic" class="chat-input" placeholder="e.g. Python Lists, Calculus, Thermodynamics, SQL Joins..." value="Machine Learning">
+          </div>
+          <div style="flex: 1;">
+            <label class="control-label">Difficulty:</label>
+            <select id="quizDifficultySelect" class="chat-input select-styled">
+              <option value="Beginner">Beginner</option>
+              <option value="Intermediate" selected>Intermediate</option>
+              <option value="Advanced">Advanced (Exam Level)</option>
+            </select>
+          </div>
+          <div style="flex: 0.8;">
+            <label class="control-label">Questions:</label>
+            <select id="quizCountSelect" class="chat-input select-styled">
+              <option value="3">3 Questions</option>
+              <option value="4" selected>4 Questions</option>
+              <option value="6">6 Questions</option>
+            </select>
+          </div>
+          <div style="align-self: flex-end;">
+            <button class="btn-primary" id="btnFetchQuiz" style="padding: 10px 20px;">Generate Quiz 🚀</button>
+          </div>
+        </div>
+
+        <div class="quiz-score-banner" id="quizScoreBanner" style="display: none;">
+          <div>
+            <span style="font-weight: 700; color: #fff;">Quiz Completed!</span>
+            <span id="quizScoreText" style="margin-left: 10px; color: var(--accent-cyan); font-weight: 800;">Score: 0 / 0</span>
+          </div>
+          <button class="btn-subtle" id="btnRestartQuiz">Retake Quiz</button>
+        </div>
+
+        <div id="quizContainer">
+          <p style="font-size: 0.88rem; color: var(--text-muted); text-align: center; padding: 30px;">
+            Enter any topic above and click <strong>Generate Quiz</strong> to practice live Groq-generated questions!
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: INTERACTIVE 3D FLASHCARDS (NEW PRO FEATURE) -->
+  <div class="modal-overlay" id="modalFlashcards">
+    <div class="modal-card flashcards-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>📇 Interactive Study Flashcards</span>
+          <span class="model-badge-inline">⚡ Groq Powered</span>
+        </div>
+        <button class="modal-close" data-close="modalFlashcards">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+          <input type="text" id="flashcardTopicInput" class="chat-input" placeholder="Enter topic for flashcards (e.g. Data Structures, Physics Formulas)..." value="Data Structures" style="flex: 1;">
+          <button class="btn-primary" id="btnGenerateFlashcards" style="width: auto; padding: 10px 20px;">Generate Cards 📇</button>
+        </div>
+
+        <div class="flashcard-deck-wrapper" id="flashcardDeckWrapper">
+          <div class="flashcard-3d-box" id="flashcardElement" title="Click anywhere to flip card!">
+            <div class="flashcard-inner" id="flashcardInner">
+              <!-- FRONT -->
+              <div class="flashcard-face flashcard-front">
+                <div class="card-side-tag">QUESTION / CONCEPT</div>
+                <div class="card-content-text" id="cardFrontText">What is a Stack in Data Structures?</div>
+                <div class="card-hint">💡 Tap or Click to Flip for Answer</div>
+              </div>
+              <!-- BACK -->
+              <div class="flashcard-face flashcard-back">
+                <div class="card-side-tag" style="color: #34d399;">ANSWER & EXPLANATION</div>
+                <div class="card-content-text" id="cardBackText">A Stack is a linear data structure following the LIFO (Last In First Out) principle, where push and pop operations occur at the top.</div>
+                <div class="card-hint">💡 Tap or Click to Flip back</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- FLASHCARD CONTROLS -->
+          <div class="flashcard-nav-row">
+            <button class="btn-subtle" id="btnPrevCard">⬅️ Previous</button>
+            <span id="flashcardCounter" style="font-size: 0.85rem; font-weight: 700; color: var(--accent-cyan);">Card 1 of 5</span>
+            <button class="btn-subtle" id="btnFlipCard">🔄 Flip</button>
+            <button class="btn-primary" id="btnNextCard" style="width: auto; padding: 8px 18px;">Next ➡️</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: POMODORO FOCUS TIMER (NEW PRO FEATURE) -->
+  <div class="modal-overlay" id="modalPomodoro">
+    <div class="modal-card pomodoro-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>⏱️ Pomodoro Study Focus Timer</span>
+        </div>
+        <button class="modal-close" data-close="modalPomodoro">✕</button>
+      </div>
+      <div class="modal-body" style="text-align: center; padding: 24px;">
+        <div class="pomodoro-mode-switch">
+          <button class="pomo-mode-btn active" id="pomoStudyMode">Study Session (25m)</button>
+          <button class="pomo-mode-btn" id="pomoBreakMode">Short Break (5m)</button>
+        </div>
+
+        <div class="pomo-clock-container">
+          <div class="pomo-digital-time" id="pomoClock">25:00</div>
+          <div class="pomo-status-label" id="pomoStatusText">Ready to Focus</div>
+        </div>
+
+        <div class="pomo-btn-row">
+          <button class="btn-primary" id="btnPomoStart" style="padding: 12px 28px; font-size: 1rem;">▶️ Start Focus</button>
+          <button class="btn-subtle" id="btnPomoReset" style="padding: 12px 20px;">🔄 Reset</button>
+        </div>
+
+        <p style="font-size: 0.78rem; color: var(--text-dim); margin-top: 18px;">
+          💡 Each completed focus minute is automatically added to your active Study Analytics!
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: UPLOAD & LEARN (DOCUMENT ANALYSIS) -->
+  <div class="modal-overlay" id="modalUpload">
+    <div class="modal-card upload-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>📄 AI Document & Notes Analysis</span>
+          <span class="model-badge-inline">⚡ Groq Powered</span>
+        </div>
+        <button class="modal-close" data-close="modalUpload">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="border: 2px dashed rgba(59, 130, 246, 0.4); border-radius: var(--radius-md); padding: 24px; text-align: center; background: rgba(30, 41, 59, 0.3); margin-bottom: 16px;">
+          <div style="font-size: 2.2rem; margin-bottom: 8px;">📤</div>
+          <h4 style="font-size: 0.95rem; margin-bottom: 4px;">Upload Study Document</h4>
+          <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 14px;">Supports PDF, TXT, DOCX, Code or Markdown</p>
+          <input type="file" id="fileUploadInput" accept=".pdf,.txt,.doc,.docx,.md,.py" style="display: none;">
+          <button class="btn-primary" id="btnSelectFile" style="width: auto; margin: 0 auto; padding: 8px 18px;">Browse Files</button>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 6px;">Or Paste Study Notes / Chapter Text:</label>
+          <textarea id="studyNotesInput" rows="4" style="width: 100%; background: #0c1427; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 10px; color: #fff; font-size: 0.85rem;" placeholder="Paste textbook chapter, class notes, or syllabus content here to extract instant AI summaries and flashcards..."></textarea>
+        </div>
+
+        <button class="btn-primary" id="btnProcessDoc">Analyze with Groq & Generate Study Kit ⚡</button>
+
+        <div id="docAnalysisResult" style="display: none; margin-top: 18px; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-glow); border-radius: var(--radius-sm); padding: 18px;">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SETTINGS & MODEL CONFIGURATION -->
+  <div class="modal-overlay" id="modalSettings">
+    <div class="modal-card settings-card">
+      <div class="modal-header">
+        <div class="modal-title">⚙️ Assistant Settings & AI Models</div>
+        <button class="modal-close" data-close="modalSettings">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom: 16px;">
+          <label style="font-size: 0.84rem; font-weight: 600; display: block; margin-bottom: 6px;">Student Name</label>
+          <input type="text" id="settingsUserName" class="chat-input" placeholder="Enter your name..." />
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label style="font-size: 0.84rem; font-weight: 600; display: block; margin-bottom: 6px;">Active AI Model</label>
+          <select id="settingsModelSelect" class="chat-input select-styled">
+            <option value="qwen/qwen3.8-27b" selected>Qwen 3.8 27B (Groq - Ultra-Fast & High Accuracy - Default)</option>
+            <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile (Groq - Deep Academic Reasoning)</option>
+            <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant (Groq - Sub-Second Fast)</option>
+          </select>
+          <span style="font-size: 0.74rem; color: var(--text-dim); display: block; margin-top: 4px;">Powered directly by Groq Cloud low-latency LPU inference.</span>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label style="font-size: 0.84rem; font-weight: 600; display: block; margin-bottom: 6px;">Groq API Key</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="password" id="settingsGroqKey" class="chat-input" placeholder="gsk_..." style="flex: 1;" />
+            <button class="btn-subtle" id="btnTestGroqConn" style="padding: 8px 14px; font-size: 0.8rem;">⚡ Test Connection</button>
+          </div>
+          <div id="groqTestStatus" style="font-size: 0.76rem; margin-top: 6px; display: none;"></div>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label style="font-size: 0.84rem; font-weight: 600; display: block; margin-bottom: 6px;">Strict Academic Guardrail</label>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <input type="checkbox" id="strictFilterToggle" checked disabled style="width: 18px; height: 18px;">
+            <span style="font-size: 0.82rem; color: #34d399;">Always Active (Answers ONLY study, coding, science & math questions)</span>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="btnSaveSettings">Save Settings & Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ANALYTICS -->
+  <div class="modal-overlay" id="modalAnalytics">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">📈 Your Study Analytics</div>
+        <button class="modal-close" data-close="modalAnalytics">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="analytics-stats-grid">
+          <div class="analytics-stat-tile">
+            <div class="stat-tile-icon icon-cyan">⏱️</div>
+            <div>
+              <div class="stat-tile-number" id="statStudyTime">0 mins</div>
+              <div class="stat-tile-label">Active Study Time</div>
+            </div>
+          </div>
+          <div class="analytics-stat-tile">
+            <div class="stat-tile-icon icon-purple">💬</div>
+            <div>
+              <div class="stat-tile-number" id="statQuestionsAsked">0</div>
+              <div class="stat-tile-label">Questions Asked</div>
+            </div>
+          </div>
+          <div class="analytics-stat-tile">
+            <div class="stat-tile-icon icon-pink">📝</div>
+            <div>
+              <div class="stat-tile-number" id="statQuizzesTaken">0</div>
+              <div class="stat-tile-label">Quizzes Completed</div>
+            </div>
+          </div>
+          <div class="analytics-stat-tile">
+            <div class="stat-tile-icon" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">🎯</div>
+            <div>
+              <div class="stat-tile-number" id="statQuizAccuracy">0%</div>
+              <div class="stat-tile-label">Quiz Accuracy Rate</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: rgba(30, 41, 59, 0.4); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px; margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span style="font-size: 0.85rem; font-weight: 600;">Overall Study Progress</span>
+            <span id="statOverallPct" style="font-size: 0.85rem; font-weight: 700; color: var(--accent-cyan);">0%</span>
+          </div>
+          <div style="background: rgba(15, 23, 42, 0.8); height: 8px; border-radius: 99px; overflow: hidden;">
+            <div id="statProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #06b6d4, #3b82f6); transition: width 0.5s ease;"></div>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="btnResetStats" style="background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); color: #fca5a5;">Reset Study Stats</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ONBOARDING / NAME SETUP -->
+  <div class="modal-overlay" id="modalOnboarding">
+    <div class="modal-card onboarding-card">
+      <div class="modal-body" style="padding: 32px 28px;">
+        <div class="onboarding-icon-glow">⚡</div>
+        <h3 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 8px; color: #fff;">Welcome to StudySync PRO!</h3>
+        <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 24px;">
+          Aapka personal high-speed academic AI assistant (Powered by <strong>Groq Qwen 3.8 27B</strong>). Shuru karne se pehle kripya apna naam batayein:
+        </p>
+
+        <div class="onboarding-input-group">
+          <label class="onboarding-input-label" for="onboardingNameInput">Apna Naam Enter Karein (Your Name):</label>
+          <input type="text" id="onboardingNameInput" class="chat-input" placeholder="e.g. Urvashi, Roshan, Priya..." style="padding: 12px 16px;" autofocus />
+        </div>
+
+        <div class="onboarding-input-group">
+          <label class="onboarding-input-label" for="onboardingSubjectSelect">Aapka Primary Subject kya hai?</label>
+          <select id="onboardingSubjectSelect" class="chat-input" style="padding: 12px 16px; background: #0c1427;">
+            <option value="Python Programming">Python Programming & Data Science</option>
+            <option value="Data Structures & Algorithms">Data Structures & Algorithms</option>
+            <option value="Mathematics">Mathematics & Derivations</option>
+            <option value="Machine Learning & AI">Machine Learning & Deep Learning</option>
+            <option value="Science (Physics/Chemistry)">Science (Physics/Chemistry/Biology)</option>
+          </select>
+        </div>
+
+        <button class="btn-primary" id="btnSaveOnboarding" style="padding: 14px; font-size: 0.95rem; font-weight: 700; margin-top: 8px;">
+          Start Learning with Groq AI 🚀
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
