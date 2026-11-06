@@ -349,22 +349,50 @@
           <div class="ctrl-group flex-1">
             <label class="ctrl-label">Questions:</label>
             <select id="quizCountSelect" class="styled-select">
-              <option value="3">3 Questions</option>
-              <option value="4" selected>4 Questions</option>
-              <option value="5">5 Questions</option>
+              <option value="5">5 Questions (Quick)</option>
+              <option value="10" selected>10 Questions (Standard)</option>
+              <option value="15">15 Questions (Challenge)</option>
+              <option value="20">20 Questions (Full Mock)</option>
+              <option value="25">25 Questions (Mastery)</option>
             </select>
+          </div>
+          <div class="ctrl-group">
+            <label class="ctrl-label">Mode:</label>
+            <div class="quiz-view-toggle">
+              <button type="button" class="view-btn active" id="btnQuizModeStep" title="Show one question at a time">🎴 Step-by-Step</button>
+              <button type="button" class="view-btn" id="btnQuizModeAll" title="Show all questions together">📜 Show All</button>
+            </div>
           </div>
           <div class="ctrl-group-btn">
             <button class="btn-glow-primary" id="btnFetchQuiz">Generate Quiz 🚀</button>
           </div>
         </div>
 
-        <div class="quiz-score-banner" id="quizScoreBanner" style="display: none;">
-          <div>
-            <strong style="color: #fff;">Quiz Completed!</strong>
-            <span id="quizScoreText" style="margin-left: 10px; color: #38bdf8; font-weight: 800;">Score: 0 / 0</span>
+        <!-- STEP-BY-STEP QUIZ PROGRESS STRIP -->
+        <div class="quiz-progress-strip" id="quizProgressStrip" style="display: none;">
+          <div class="progress-info-row">
+            <span class="quiz-q-counter" id="quizCurrentCounter">Question 1 of 10</span>
+            <span class="quiz-score-live" id="quizLiveScore">Score: 0</span>
           </div>
-          <button class="btn-outline-subtle" id="btnRestartQuiz">Retake Quiz</button>
+          <div class="quiz-progress-track">
+            <div class="quiz-progress-fill" id="quizProgressFill" style="width: 10%;"></div>
+          </div>
+          <div class="quiz-nav-pills" id="quizNavPills"></div>
+        </div>
+
+        <div class="quiz-score-banner" id="quizScoreBanner" style="display: none;">
+          <div class="score-summary-wrap">
+            <div class="score-badge-circle" id="quizScoreCircle">100%</div>
+            <div>
+              <h4 id="quizScoreHeadline" style="color: #fff; margin-bottom: 4px; font-size: 1.05rem;">🎉 Quiz Completed!</h4>
+              <p id="quizScoreText" style="color: #38bdf8; font-weight: 700; font-size: 0.92rem; margin: 0;">Score: 0 / 0</p>
+              <p id="quizScoreFeedback" style="color: #94a3b8; font-size: 0.82rem; margin-top: 4px;">Great job testing your knowledge!</p>
+            </div>
+          </div>
+          <div class="score-actions-row">
+            <button class="btn-outline-subtle" id="btnRestartQuiz">🔄 Retake Quiz</button>
+            <button class="btn-glow-primary" id="btnNewQuiz">⚡ Fresh Quiz</button>
+          </div>
         </div>
 
         <div id="quizContainer" class="quiz-content-area">

@@ -63,15 +63,28 @@ class TestStudyAssistant(unittest.TestCase):
         self.assertEqual(config.GROQ_DEFAULT_MODEL, "qwen/qwen3.8-27b")
 
     def test_generate_study_quiz(self):
-        quiz = generate_study_quiz(topic="Python", count=2)
+        quiz = generate_study_quiz(topic="Python", count=5)
         self.assertIsInstance(quiz, list)
-        self.assertTrue(len(quiz) > 0)
+        self.assertEqual(len(quiz), 5)
         q1 = quiz[0]
         self.assertIn("question", q1)
         self.assertIn("options", q1)
         self.assertIn("answer", q1)
         self.assertIn("explanation", q1)
         self.assertEqual(len(q1["options"]), 4)
+
+    def test_generate_study_quiz_10_questions(self):
+        quiz = generate_study_quiz(topic="Data Structures", count=10)
+        self.assertIsInstance(quiz, list)
+        self.assertEqual(len(quiz), 10)
+        # Ensure all questions in the batch are unique
+        questions_text = [q["question"] for q in quiz]
+        self.assertEqual(len(questions_text), len(set(questions_text)))
+
+    def test_test_groq_connection_success_field(self):
+        res = test_groq_connection()
+        self.assertIn("success", res)
+        self.assertIn("status", res)
 
     def test_analyze_document_content(self):
         sample = "Python supports OOP principles including Inheritance, Polymorphism and Encapsulation."

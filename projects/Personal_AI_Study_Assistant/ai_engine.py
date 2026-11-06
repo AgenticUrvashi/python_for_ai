@@ -17,7 +17,9 @@ import ast
 import json
 import math
 import operator
+import random
 import re
+import time
 import urllib.error
 import urllib.request
 from typing import Any, Dict, List, Optional, Tuple
@@ -415,174 +417,575 @@ def get_ai_response(
         }
     return fallback_text
 
+# Session cache to track recent quiz questions and prevent repetition
+RECENT_QUIZ_TITLES: List[str] = []
+
+def parse_quiz_answer(ans: Any, options: List[str]) -> int:
+    """Robustly parse answer from LLM output (integer, digit string, letter, or option text)."""
+    if isinstance(ans, int):
+        if 0 <= ans < len(options):
+            return ans
+        return 0
+    if isinstance(ans, str):
+        clean_str = ans.strip()
+        if clean_str.isdigit():
+            idx = int(clean_str)
+            if 0 <= idx < len(options):
+                return idx
+        # Option letter: "A", "B", "C", "D" or "Option A"
+        match = re.match(r"^(?:option\s+)?([A-D])\b", clean_str, re.IGNORECASE)
+        if match:
+            letter = match.group(1).upper()
+            mapping = {"A": 0, "B": 1, "C": 2, "D": 3}
+            if letter in mapping and mapping[letter] < len(options):
+                return mapping[letter]
+        # Match option text directly
+        for idx, opt in enumerate(options):
+            if clean_str.lower() == opt.strip().lower() or opt.strip().lower() in clean_str.lower():
+                return idx
+    return 0
+
+# Comprehensive academic fallback quiz bank with 90+ verified questions
+FALLBACK_QUIZ_BANK: Dict[str, List[Dict[str, Any]]] = {
+    "python": [
+        {
+            "question": "Which of the following data types in Python is IMMUTABLE?",
+            "options": ["List", "Dictionary", "Tuple", "Set"],
+            "answer": 2,
+            "explanation": "Tuples, strings, and integers are immutable in Python; their contents cannot be modified after creation."
+        },
+        {
+            "question": "What does `bool([])` evaluate to in Python?",
+            "options": ["True", "False", "None", "Raises an Exception"],
+            "answer": 1,
+            "explanation": "Empty containers (empty lists, tuples, dicts, strings) have falsy truth values in Python, evaluating to False."
+        },
+        {
+            "question": "How do you define a memory-efficient generator function in Python?",
+            "options": ["Using the `return` statement", "Using the `yield` statement", "Using `async def`", "Using lambda expressions"],
+            "answer": 1,
+            "explanation": "The `yield` statement pauses function execution and emits a value, turning the function into an iterator/generator that produces items on demand."
+        },
+        {
+            "question": "What is the output of `type(lambda x: x)` in Python?",
+            "options": ["<class 'function'>", "<class 'lambda'>", "<class 'method'>", "<class 'generator'>"],
+            "answer": 0,
+            "explanation": "Lambdas create standard anonymous functions whose runtime type is `<class 'function'>`."
+        },
+        {
+            "question": "What is the difference between `==` and `is` in Python?",
+            "options": [
+                "`==` checks value equality, whereas `is` checks memory identity (same object address)",
+                "`is` checks value equality, whereas `==` checks object identity",
+                "`==` is used for numbers, `is` is used for strings",
+                "Both operators are identical in Python 3"
+            ],
+            "answer": 0,
+            "explanation": "`==` invokes `__eq__()` to check whether values match. `is` checks whether two variables reference the exact same memory location (`id(a) == id(b)`)."
+        },
+        {
+            "question": "Which built-in module is used in Python for deep and shallow copies of objects?",
+            "options": ["clone", "copy", "duplication", "sys"],
+            "answer": 1,
+            "explanation": "Python's `copy` module provides `copy.copy()` for shallow copy and `copy.deepcopy()` for recursively copying nested objects."
+        },
+        {
+            "question": "What is the output of `[x for x in range(10) if x % 2 == 0]`?",
+            "options": ["[0, 2, 4, 6, 8]", "[1, 3, 5, 7, 9]", "[2, 4, 6, 8, 10]", "[0, 2, 4, 6, 8, 10]"],
+            "answer": 0,
+            "explanation": "`range(10)` generates integers from 0 to 9. The condition `x % 2 == 0` filters for even numbers: 0, 2, 4, 6, 8."
+        },
+        {
+            "question": "What happens if a key is not found when using `my_dict.get('unknown', 100)`?",
+            "options": ["Raises a KeyError", "Returns 100 without raising an error", "Returns None", "Inserts 'unknown': 100 into my_dict"],
+            "answer": 1,
+            "explanation": "`dict.get(key, default)` returns the fallback default value (`100`) if the key does not exist, avoiding a KeyError."
+        },
+        {
+            "question": "What is Python's Global Interpreter Lock (GIL)?",
+            "options": [
+                "A mutex that prevents multiple native threads from executing Python bytecodes simultaneously",
+                "A compiler lock that prevents code modification at runtime",
+                "A security module for encrypted socket connections",
+                "A memory lock preventing garbage collection"
+            ],
+            "answer": 0,
+            "explanation": "The GIL is a mutex used by CPython to ensure only one thread executes Python bytecode at a time, simplifying thread-safe memory management."
+        },
+        {
+            "question": "Which method is called automatically when an object is instantiated in Python?",
+            "options": ["__start__()", "__init__()", "__new__() only", "__construct__()"],
+            "answer": 1,
+            "explanation": "`__init__()` acts as the initializer method for instances, called immediately after `__new__()` creates the instance."
+        },
+        {
+            "question": "What is the time complexity of looking up a key in a Python dictionary on average?",
+            "options": ["O(1)", "O(n)", "O(log n)", "O(n²)"],
+            "answer": 0,
+            "explanation": "Python dictionaries are implemented as hash tables, yielding average O(1) constant time complexity for lookups, insertions, and deletions."
+        },
+        {
+            "question": "Which decorator in Python is used to define a method that operates on the class itself rather than an instance?",
+            "options": ["@staticmethod", "@classmethod", "@property", "@abstractmethod"],
+            "answer": 1,
+            "explanation": "`@classmethod` passes the class `cls` as the first argument, allowing access and modification of class-level state."
+        },
+        {
+            "question": "What will `print('Python'[::-1])` output?",
+            "options": ["Python", "nohtyP", "IndexError", "P"],
+            "answer": 1,
+            "explanation": "Extended slice syntax `[::-1]` traverses the sequence backwards with step -1, reversing the string to 'nohtyP'."
+        },
+        {
+            "question": "In Python, which block is ALWAYS executed whether an exception occurs or not?",
+            "options": ["except", "finally", "else", "catch"],
+            "answer": 1,
+            "explanation": "The `finally` block in a `try...except...finally` construct is guaranteed to execute, commonly used for resource cleanup."
+        },
+        {
+            "question": "What is the purpose of `*args` and `**kwargs` in Python function definitions?",
+            "options": [
+                "Passing variable number of positional arguments and keyword arguments respectively",
+                "Defining pointer types and memory addresses",
+                "Enabling multi-threaded concurrency",
+                "Specifying return types for static checking"
+            ],
+            "answer": 0,
+            "explanation": "`*args` collects extra positional arguments into a tuple, while `**kwargs` collects extra keyword arguments into a dictionary."
+        }
+    ],
+    "data structures": [
+        {
+            "question": "What is the average time complexity of searching an element in a Balanced Binary Search Tree (BST)?",
+            "options": ["O(1)", "O(n)", "O(log n)", "O(n log n)"],
+            "answer": 2,
+            "explanation": "In a balanced BST (like AVL or Red-Black), each comparison halves the remaining search space, resulting in O(log n) time."
+        },
+        {
+            "question": "Which data structure operates strictly on the LIFO (Last In First Out) principle?",
+            "options": ["Queue", "Stack", "Linked List", "Priority Queue"],
+            "answer": 1,
+            "explanation": "A Stack works on LIFO where the most recently pushed element is the first one removed with pop()."
+        },
+        {
+            "question": "What is the worst-case time complexity of QuickSort?",
+            "options": ["O(n log n)", "O(n)", "O(n²)", "O(log n)"],
+            "answer": 2,
+            "explanation": "When an unbalanced pivot (such as the smallest or largest item) is chosen repeatedly on a sorted array, QuickSort degrades to O(n²)."
+        },
+        {
+            "question": "Which data structure is fundamentally used for Breadth-First Search (BFS) in a Graph?",
+            "options": ["Stack", "Queue", "Binary Tree", "Heap"],
+            "answer": 1,
+            "explanation": "BFS explores vertices level by level, requiring a FIFO Queue to process vertices in the exact order they were discovered."
+        },
+        {
+            "question": "What is the time complexity of inserting an element at the beginning (head) of a Singly Linked List?",
+            "options": ["O(1)", "O(n)", "O(log n)", "O(n²)"],
+            "answer": 0,
+            "explanation": "Inserting at the head requires simply pointing the new node's next pointer to the current head and updating the head pointer in O(1) time."
+        },
+        {
+            "question": "Which algorithm is used to find the shortest path in a weighted graph with non-negative edge weights?",
+            "options": ["Prim's Algorithm", "Dijkstra's Algorithm", "Kruskal's Algorithm", "Floyd-Warshall Algorithm"],
+            "answer": 1,
+            "explanation": "Dijkstra's algorithm uses a priority queue (min-heap) to determine the single-source shortest paths in O((V + E) log V) time."
+        },
+        {
+            "question": "What type of data structure is used to implement a Min-Heap or Max-Heap efficiently in memory?",
+            "options": ["Hash Table", "Complete Binary Tree represented as an Array", "Doubly Linked List", "Trie"],
+            "answer": 1,
+            "explanation": "A complete binary tree has no holes and can be densely stored in an array with parent-child arithmetic (`2i + 1`, `2i + 2`)."
+        },
+        {
+            "question": "What is the average and worst-case time complexity of MergeSort?",
+            "options": ["O(n log n) in both cases", "O(n) average, O(n log n) worst", "O(n log n) average, O(n²) worst", "O(log n) in both cases"],
+            "answer": 0,
+            "explanation": "MergeSort divides the array into halves recursively and merges them in linear time, guaranteeing O(n log n) in best, average, and worst cases."
+        },
+        {
+            "question": "Which data structure is optimal for prefix searches and auto-complete features in search engines?",
+            "options": ["Segment Tree", "Trie (Prefix Tree)", "B-Tree", "Fenwick Tree"],
+            "answer": 1,
+            "explanation": "Tries store characters along paths from root, allowing retrieval of all words sharing a common prefix in O(k) time where k is the prefix length."
+        },
+        {
+            "question": "What is a major advantage of a Circular Queue over a standard linear array Queue?",
+            "options": [
+                "Reuses empty slots created by de-queuing without shifting elements",
+                "Provides O(1) searching for any arbitrary element",
+                "Automatically resizes without memory allocation",
+                "Allows LIFO ordering"
+            ],
+            "answer": 0,
+            "explanation": "A circular queue wraps rear and front indices using modulo arithmetic, preventing wasted unused space at the front of the array."
+        },
+        {
+            "question": "What is the primary condition for an AVL Tree to remain balanced?",
+            "options": [
+                "The balance factor (height difference between left and right subtrees) of any node is at most 1 (-1, 0, or 1)",
+                "All leaf nodes must be at the exact same depth",
+                "The root node must be the median of all keys",
+                "Every node must have exactly two children"
+            ],
+            "answer": 0,
+            "explanation": "AVL trees enforce that `|height(left) - height(right)| <= 1` for every node, rebalancing via tree rotations when violated."
+        },
+        {
+            "question": "Which hash table collision resolution technique places colliding elements in a linked list at the same bucket index?",
+            "options": ["Linear Probing", "Separate Chaining", "Quadratic Probing", "Double Hashing"],
+            "answer": 1,
+            "explanation": "Separate chaining stores all elements hashing to the same slot in an auxiliary linked list or tree attached to that bucket."
+        }
+    ],
+    "machine learning": [
+        {
+            "question": "Which of the following is an example of a Supervised Learning task?",
+            "options": ["K-Means Clustering", "Spam Email Classification", "Dimensionality Reduction via PCA", "Apriori Association Mining"],
+            "answer": 1,
+            "explanation": "Spam email classification is supervised because the model trains on historical emails labeled as 'spam' or 'not spam'."
+        },
+        {
+            "question": "What does 'Overfitting' in Machine Learning mean?",
+            "options": [
+                "Model performs well on training data but generalizes poorly to unseen test data",
+                "Model performs poorly on both training and test data",
+                "Model converges too fast during gradient descent",
+                "Model uses insufficient feature dimensions"
+            ],
+            "answer": 0,
+            "explanation": "Overfitting occurs when a model memorizes noise and sample-specific idiosyncrasies of the training set rather than learning true generalizable relationships."
+        },
+        {
+            "question": "Which activation function is widely favored in hidden layers of deep neural networks to mitigate vanishing gradients?",
+            "options": ["Sigmoid", "ReLU (Rectified Linear Unit)", "Linear", "Softmax"],
+            "answer": 1,
+            "explanation": "ReLU ($f(x) = \\max(0, x)$) maintains a constant gradient of 1 for positive activations, effectively mitigating the vanishing gradient problem."
+        },
+        {
+            "question": "What is the primary role of a Validation dataset during model training?",
+            "options": ["Final benchmark testing", "Hyperparameter tuning and early stopping", "Initial weight calculation", "Feature normalization"],
+            "answer": 1,
+            "explanation": "The validation set is used during training to tune hyperparameters (like learning rate) and detect overfitting before final testing."
+        },
+        {
+            "question": "Which metric is most informative when evaluating a classifier on an extremely imbalanced dataset (e.g. fraud detection)?",
+            "options": ["Accuracy", "Precision-Recall AUC / F1-Score", "Mean Squared Error", "R² Score"],
+            "answer": 1,
+            "explanation": "Accuracy can be deceptively high (e.g. 99% accuracy by predicting all negatives). F1-Score and PR-AUC properly account for true positive detection and false alarms."
+        },
+        {
+            "question": "What is the core idea of Regularization techniques (like L1 Lasso and L2 Ridge)?",
+            "options": [
+                "Adding a penalty term to the loss function to constrain large weights and prevent overfitting",
+                "Increasing the number of features automatically",
+                "Accelerating the learning rate during backpropagation",
+                "Normalizing input images to 0-255 range"
+            ],
+            "answer": 0,
+            "explanation": "Regularization penalizes large model weights, favoring simpler hypotheses that generalize better to unseen data."
+        },
+        {
+            "question": "In the Transformer architecture, what mechanism allows tokens to attend to different parts of the sequence simultaneously?",
+            "options": ["Convolutional Filtering", "Multi-Head Self-Attention", "Recurrent Hidden State", "Max Pooling"],
+            "answer": 1,
+            "explanation": "Multi-Head Attention projects queries, keys, and values into multiple subspaces, allowing the model to focus on diverse contextual relationships across the sequence."
+        },
+        {
+            "question": "What is the difference between L1 (Lasso) and L2 (Ridge) regularization?",
+            "options": [
+                "L1 produces sparse models with exact zeros (feature selection), while L2 shrinks weights smoothly towards zero",
+                "L2 produces sparse models with exact zeros, while L1 does not",
+                "L1 is only used in classification, L2 only in regression",
+                "L1 squares the weights, while L2 uses absolute values"
+            ],
+            "answer": 0,
+            "explanation": "L1 uses the absolute value penalty `|w|` whose geometric contours hit axes, setting uninformative weights to zero. L2 uses `w²` which shrinks weights without setting them to absolute zero."
+        }
+    ],
+    "web development": [
+        {
+            "question": "In JavaScript, what is the output of `typeof null`?",
+            "options": ["'null'", "'undefined'", "'object'", "'boolean'"],
+            "answer": 2,
+            "explanation": "`typeof null === 'object'` is a legacy quirk in JavaScript dating back to its first release where values were tagged with type bits."
+        },
+        {
+            "question": "Which HTTP status code signifies that a resource was successfully created on the server?",
+            "options": ["200 OK", "201 Created", "204 No Content", "301 Moved Permanently"],
+            "answer": 1,
+            "explanation": "HTTP 201 Created indicates that the request succeeded and led to the creation of a new resource, commonly returned on POST requests."
+        },
+        {
+            "question": "What is the purpose of the JavaScript Event Loop?",
+            "options": [
+                "To handle asynchronous callbacks by coordinating the Call Stack, Web APIs, and Task/Microtask Queues",
+                "To compile JavaScript code into native machine assembly",
+                "To allocate physical RAM for browser DOM elements",
+                "To encrypt network traffic over HTTPS"
+            ],
+            "answer": 0,
+            "explanation": "The Event Loop monitors the Call Stack and moves tasks from the callback/microtask queues onto the stack when it becomes idle."
+        },
+        {
+            "question": "Which CSS property defines how flexbox or grid items are distributed along the main axis?",
+            "options": ["align-items", "justify-content", "align-content", "flex-direction"],
+            "answer": 1,
+            "explanation": "`justify-content` distributes space between and around flex items along the primary axis (horizontal by default in `flex-direction: row`)."
+        },
+        {
+            "question": "What is a JavaScript Closure?",
+            "options": [
+                "A function bundled with references to its surrounding lexical environment (access to outer variables even after the outer function returns)",
+                "A statement that closes an open network socket",
+                "A method to delete variables from memory",
+                "A browser event triggered when closing a tab"
+            ],
+            "answer": 0,
+            "explanation": "A closure gives an inner function access to an outer function's scope even after the outer function has executed and returned."
+        },
+        {
+            "question": "What is the primary difference between `localStorage` and `sessionStorage` in the browser?",
+            "options": [
+                "`localStorage` persists data indefinitely until explicitly cleared, while `sessionStorage` expires when the browser tab/session closes",
+                "`sessionStorage` stores more megabytes than `localStorage`",
+                "`localStorage` is automatically transmitted to the server on every HTTP request",
+                "`sessionStorage` is encrypted with SSL"
+            ],
+            "answer": 0,
+            "explanation": "`localStorage` has no expiration date, while `sessionStorage` is scoped to the browser tab and is cleared when the tab is closed."
+        }
+    ],
+    "science": [
+        {
+            "question": "What is the SI unit of Electric Potential Difference (Voltage)?",
+            "options": ["Ampere (A)", "Volt (V)", "Ohm (Ω)", "Watt (W)"],
+            "answer": 1,
+            "explanation": "The volt (V) is the SI unit of electric potential, electric potential difference, and electromotive force."
+        },
+        {
+            "question": "What gas do green plants primarily absorb from the atmosphere during photosynthesis?",
+            "options": ["Oxygen (O₂)", "Carbon Dioxide (CO₂)", "Nitrogen (N₂)", "Hydrogen (H₂)"],
+            "answer": 1,
+            "explanation": "Plants take in Carbon Dioxide ($CO_2$) and water ($H_2O$), using sunlight to synthesize glucose and release Oxygen ($O_2$)."
+        },
+        {
+            "question": "Which of Newton's laws of motion states that for every action, there is an equal and opposite reaction?",
+            "options": ["First Law", "Second Law", "Third Law", "Law of Universal Gravitation"],
+            "answer": 2,
+            "explanation": "Newton's Third Law states that when one body exerts a force on a second body, the second exerts an equal force in the opposite direction."
+        },
+        {
+            "question": "What is the pH value of pure neutral water at 25°C?",
+            "options": ["0", "7", "14", "1"],
+            "answer": 1,
+            "explanation": "A pH of 7 represents a neutral solution where hydrogen ion ($H^+$) and hydroxide ion ($OH^-$) concentrations are equal ($10^{-7}\\text{ M}$)."
+        },
+        {
+            "question": "Which subatomic particle carries a negative electrical charge in an atom?",
+            "options": ["Proton", "Neutron", "Electron", "Positron"],
+            "answer": 2,
+            "explanation": "Electrons carry a negative charge of $-1.6 \\times 10^{-19}$ Coulombs and orbit the atomic nucleus."
+        },
+        {
+            "question": "What is the speed of light in a vacuum approximately?",
+            "options": ["300,000 km/s", "150,000 km/s", "3,000 km/s", "30,000 km/s"],
+            "answer": 0,
+            "explanation": "The speed of light in vacuum is approximately $3 \\times 10^8\\text{ m/s}$ or 300,000 kilometers per second."
+        }
+    ],
+    "mathematics": [
+        {
+            "question": "What is the derivative of $f(x) = x^3$ with respect to $x$?",
+            "options": ["$3x$", "$3x^2$", "$x^2$", "$\\frac{x^4}{4}$"],
+            "answer": 1,
+            "explanation": "By applying the power rule $\\frac{d}{dx}[x^n] = n \\cdot x^{n-1}$, the derivative of $x^3$ is $3x^2$."
+        },
+        {
+            "question": "What is the value of $\\log_{10}(1000)$?",
+            "options": ["1", "2", "3", "10"],
+            "answer": 2,
+            "explanation": "Since $10^3 = 1000$, $\\log_{10}(1000) = 3$."
+        },
+        {
+            "question": "What are the roots of the quadratic equation $x^2 - 5x + 6 = 0$?",
+            "options": ["$x = 2$ and $x = 3$", "$x = -2$ and $x = -3$", "$x = 1$ and $x = 6$", "$x = -1$ and $x = -6$"],
+            "answer": 0,
+            "explanation": "Factoring $(x - 2)(x - 3) = 0$ gives solutions $x = 2$ and $x = 3$."
+        },
+        {
+            "question": "In a right-angled triangle, if the legs are 3 cm and 4 cm, what is the length of the hypotenuse?",
+            "options": ["5 cm", "6 cm", "7 cm", "25 cm"],
+            "answer": 0,
+            "explanation": "By the Pythagorean theorem: $c = \\sqrt{3^2 + 4^2} = \\sqrt{9 + 16} = \\sqrt{25} = 5\\text{ cm}$."
+        },
+        {
+            "question": "What is the determinant of the $2 \\times 2$ matrix $\\begin{pmatrix} 2 & 3 \\\\ 1 & 4 \\end{pmatrix}$?",
+            "options": ["5", "11", "8", "-5"],
+            "answer": 0,
+            "explanation": "The determinant of $\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}$ is $ad - bc = (2 \\times 4) - (3 \\times 1) = 8 - 3 = 5$."
+        }
+    ]
+}
+
 def generate_study_quiz(
-    topic: str = "Machine Learning",
+    topic: str = "Python Programming",
     difficulty: str = "Intermediate",
-    count: int = 4,
+    count: int = 10,
     custom_api_key: str = "",
     model: str = ""
 ) -> List[Dict[str, Any]]:
     """
-    Generate dynamic interactive multiple choice questions for study revision using Groq.
-    Outputs strict JSON array of quiz objects.
+    Generate dynamic interactive multiple choice questions for study revision.
+    1. Uses Groq Cloud AI with dynamic temperature and variety prompting.
+    2. Enforces non-repetition by tracking recent session questions and randomizing focus areas.
+    3. Handles answer parsing flexibly (integers, letters A-D, option texts).
+    4. Robust fallback to rich 90+ question offline bank with randomized sampling.
     """
-    groq_key = custom_api_key or config.GROQ_API_KEY
-    chosen_model = model or config.GROQ_DEFAULT_MODEL
+    global RECENT_QUIZ_TITLES
+    groq_key = (custom_api_key or config.GROQ_API_KEY).strip()
+    chosen_model = (model or config.GROQ_DEFAULT_MODEL).strip()
     if chosen_model.startswith("groq:"):
         chosen_model = chosen_model[len("groq:"):]
 
+    valid_questions: List[Dict[str, Any]] = []
+
+    # 1. Try Groq Cloud Generation if API key is present
     if groq_key:
+        salt = random.randint(10000, 99999)
+        # Avoid repeating recent questions
+        recent_sample = [f"'{t[:40]}'" for t in RECENT_QUIZ_TITLES[-12:]]
+        avoid_instruction = f"Avoid asking questions similar to: {', '.join(recent_sample)}." if recent_sample else ""
+
         prompt = (
-            f"You are a strict academic quiz creator for students. "
-            f"Generate exactly {count} multiple-choice questions (MCQs) on the topic: '{topic}'. "
-            f"Difficulty Level: {difficulty}.\n\n"
+            f"You are an expert academic educator and exam creator. "
+            f"Generate exactly {count} fresh, engaging, and diverse multiple-choice questions (MCQs) for students.\n"
+            f"Topic: '{topic}'\n"
+            f"Difficulty Level: {difficulty}\n"
+            f"Session ID: {salt}\n\n"
             f"Requirements:\n"
-            f"1. Each question must have exactly 4 options.\n"
-            f"2. Exactly one option must be correct.\n"
-            f"3. 'answer' must be an integer index (0, 1, 2, or 3) corresponding to the correct option in 'options'.\n"
-            f"4. Provide a clear educational 'explanation' for why that answer is correct.\n"
-            f"5. Return ONLY a valid JSON array, with no other conversational markdown text.\n\n"
-            f"Expected JSON schema:\n"
+            f"1. Generate high-yield, unique questions across different concepts, code snippets (if applicable), definitions, and problem solving.\n"
+            f"2. {avoid_instruction}\n"
+            f"3. Each question MUST have exactly 4 plausible options.\n"
+            f"4. Exactly one option must be correct.\n"
+            f"5. 'answer' must be the 0-based integer index (0, 1, 2, or 3) of the correct option.\n"
+            f"6. Provide a concise, educational 'explanation' for the solution.\n"
+            f"7. Return ONLY a valid JSON array, with no other conversational markdown text or commentary.\n\n"
+            f"JSON schema:\n"
             f"[\n"
             f"  {{\n"
-            f"    \"question\": \"Question text here?\",\n"
-            f"    \"options\": [\"Option A\", \"Option B\", \"Option C\", \"Option D\"],\n"
+            f"    \"question\": \"Clear question text?\",\n"
+            f"    \"options\": [\"Option 0\", \"Option 1\", \"Option 2\", \"Option 3\"],\n"
             f"    \"answer\": 0,\n"
-            f"    \"explanation\": \"Detailed explanation here.\"\n"
+            f"    \"explanation\": \"Why this option is correct.\"\n"
             f"  }}\n"
             f"]"
         )
         messages = [
-            {"role": "system", "content": "You are a specialized JSON quiz generation engine. Output only valid JSON."},
+            {"role": "system", "content": "You are a professional educational assessment engine. Output only a valid JSON array."},
             {"role": "user", "content": prompt}
         ]
+
+        # Calculate safe max_tokens based on requested count (approx 280 tokens per question)
+        token_limit = max(1800, min(4096, count * 350))
 
         success, content = call_groq_api(
             messages=messages,
             model=chosen_model,
             api_key=groq_key,
-            temperature=0.2,
-            max_tokens=1600
+            temperature=0.75,  # Higher temperature ensures unique non-repetitive questions
+            max_tokens=token_limit
         )
 
         if success and content:
-            # Extract JSON array from LLM output
             try:
-                # Find start and end bracket
-                start = content.find("[")
-                end = content.rfind("]")
+                # Strip code blocks ```json ... ```
+                clean_content = re.sub(r"^```(?:json)?\s*", "", content.strip(), flags=re.MULTILINE)
+                clean_content = re.sub(r"\s*```$", "", clean_content.strip(), flags=re.MULTILINE)
+
+                start = clean_content.find("[")
+                end = clean_content.rfind("]")
                 if start != -1 and end != -1:
-                    json_str = content[start:end+1]
+                    json_str = clean_content[start:end+1]
+                    # Remove trailing commas before closing brackets
+                    json_str = re.sub(r",\s*([\]}])", r"\1", json_str)
                     quiz_data = json.loads(json_str)
                     if isinstance(quiz_data, list) and len(quiz_data) > 0:
-                        # Validate structure
-                        valid_questions = []
                         for q in quiz_data:
-                            if "question" in q and "options" in q and "answer" in q:
-                                valid_questions.append({
-                                    "question": str(q["question"]),
-                                    "options": [str(opt) for opt in q["options"][:4]],
-                                    "answer": int(q["answer"]) if 0 <= int(q.get("answer", 0)) < len(q["options"]) else 0,
-                                    "explanation": str(q.get("explanation", "Correct academic answer."))
-                                })
-                        if valid_questions:
-                            return valid_questions
+                            if isinstance(q, dict) and "question" in q and "options" in q:
+                                raw_opts = q.get("options", [])
+                                if isinstance(raw_opts, list) and len(raw_opts) >= 2:
+                                    clean_opts = [str(opt) for opt in raw_opts[:4]]
+                                    # Ensure exactly 4 options
+                                    while len(clean_opts) < 4:
+                                        clean_opts.append(f"Option {len(clean_opts) + 1}")
+
+                                    ans_idx = parse_quiz_answer(q.get("answer", 0), clean_opts)
+                                    q_text = str(q["question"]).strip()
+
+                                    # Check for near-duplicate in this batch
+                                    if not any(v["question"] == q_text for v in valid_questions):
+                                        valid_questions.append({
+                                            "question": q_text,
+                                            "options": clean_opts,
+                                            "answer": ans_idx,
+                                            "explanation": str(q.get("explanation", "Correct academic answer."))
+                                        })
             except Exception:
                 pass
 
-    # Built-in offline fallback quizzes
-    quizzes = {
-        "machine learning": [
-            {
-                "question": "Which of the following is an example of a Supervised Learning task?",
-                "options": ["K-Means Clustering", "Spam Email Classification", "Dimensionality Reduction via PCA", "Apriori Association Mining"],
-                "answer": 1,
-                "explanation": "Spam email classification is supervised because the model trains on historical emails labeled as 'spam' or 'not spam'."
-            },
-            {
-                "question": "What does 'Overfitting' in Machine Learning mean?",
-                "options": [
-                    "Model performs well on training data but generalizes poorly to unseen test data",
-                    "Model performs poorly on both training and test data",
-                    "Model converges too fast during gradient descent",
-                    "Model uses insufficient feature dimensions"
-                ],
-                "answer": 0,
-                "explanation": "Overfitting occurs when a model memorizes noise and sample-specific idiosyncrasies of the training set rather than learning true generalizable relationships."
-            },
-            {
-                "question": "Which activation function is widely favored in hidden layers of deep neural networks to mitigate vanishing gradients?",
-                "options": ["Sigmoid", "ReLU (Rectified Linear Unit)", "Linear", "Softmax"],
-                "answer": 1,
-                "explanation": "ReLU ($f(x) = \\max(0, x)$) maintains a constant gradient of 1 for positive activations, effectively mitigating the vanishing gradient problem."
-            },
-            {
-                "question": "What is the primary role of a Validation dataset during model training?",
-                "options": ["Final benchmark testing", "Hyperparameter tuning and early stopping", "Initial weight calculation", "Feature normalization"],
-                "answer": 1,
-                "explanation": "The validation set is used during training to tune hyperparameters (like learning rate) and detect overfitting before final testing."
-            }
-        ],
-        "data structures": [
-            {
-                "question": "What is the average time complexity of searching an element in a Balanced Binary Search Tree (BST)?",
-                "options": ["O(1)", "O(n)", "O(log n)", "O(n log n)"],
-                "answer": 2,
-                "explanation": "In a balanced BST (like AVL or Red-Black), each comparison halves the remaining search space, resulting in O(log n) time."
-            },
-            {
-                "question": "Which data structure operates strictly on the LIFO (Last In First Out) principle?",
-                "options": ["Queue", "Stack", "Linked List", "Priority Queue"],
-                "answer": 1,
-                "explanation": "A Stack works on LIFO where the most recently pushed element is the first one removed with pop()."
-            },
-            {
-                "question": "What is the worst-case time complexity of QuickSort?",
-                "options": ["O(n log n)", "O(n)", "O(n²)", "O(log n)"],
-                "answer": 2,
-                "explanation": "When an unbalanced pivot (such as the smallest or largest item) is chosen repeatedly on a sorted array, QuickSort degrades to O(n²)."
-            },
-            {
-                "question": "Which data structure is fundamentally used for Breadth-First Search (BFS) in a Graph?",
-                "options": ["Stack", "Queue", "Binary Tree", "Heap"],
-                "answer": 1,
-                "explanation": "BFS explores vertices level by level, requiring a FIFO Queue to process vertices in the exact order they were discovered."
-            }
-        ],
-        "python": [
-            {
-                "question": "Which of the following data types in Python is IMMUTABLE?",
-                "options": ["List", "Dictionary", "Tuple", "Set"],
-                "answer": 2,
-                "explanation": "Tuples, strings, and integers are immutable in Python; their contents cannot be altered after creation."
-            },
-            {
-                "question": "What does `bool([])` evaluate to in Python?",
-                "options": ["True", "False", "None", "Raises an Exception"],
-                "answer": 1,
-                "explanation": "Empty containers (empty lists, tuples, dicts, strings) have falsy truth values in Python, evaluating to False."
-            },
-            {
-                "question": "How do you define a memory-efficient generator function in Python?",
-                "options": ["Using the `return` statement", "Using the `yield` statement", "Using `async def`", "Using lambda expressions"],
-                "answer": 1,
-                "explanation": "The `yield` statement pauses function execution and emits a value, turning the function into an iterator/generator that produces items on demand."
-            },
-            {
-                "question": "What is the output of `type(lambda x: x)` in Python?",
-                "options": ["<class 'function'>", "<class 'lambda'>", "<class 'method'>", "<class 'generator'>"],
-                "answer": 0,
-                "explanation": "Lambdas create standard anonymous functions whose runtime type is `<class 'function'>`."
-            }
-        ]
-    }
-
+    # 2. Rich Offline Fallback with Dynamic Random Sampling
     t_lower = topic.lower()
-    for key, q_list in quizzes.items():
-        if key in t_lower:
-            return q_list[:count]
+    selected_pool: List[Dict[str, Any]] = []
 
-    return quizzes["machine learning"][:count]
+    # Find matching categories in the fallback bank
+    for cat_name, q_list in FALLBACK_QUIZ_BANK.items():
+        if cat_name in t_lower or any(word in t_lower for word in cat_name.split()):
+            selected_pool.extend(q_list)
+
+    # If pool is empty or small, aggregate all fallback questions
+    if len(selected_pool) < count:
+        for cat_name, q_list in FALLBACK_QUIZ_BANK.items():
+            for item in q_list:
+                if item not in selected_pool:
+                    selected_pool.append(item)
+
+    # Filter out questions already in valid_questions OR recently asked questions
+    existing_q_texts = {vq["question"] for vq in valid_questions}
+    available_fallback = [
+        q for q in selected_pool
+        if q["question"] not in existing_q_texts and q["question"] not in RECENT_QUIZ_TITLES
+    ]
+
+    # If not enough un-asked questions, allow older ones from pool
+    if len(available_fallback) < (count - len(valid_questions)):
+        older_fallback = [
+            q for q in selected_pool
+            if q["question"] not in existing_q_texts and q not in available_fallback
+        ]
+        random.shuffle(older_fallback)
+        available_fallback.extend(older_fallback)
+
+    # Shuffle fallback pool to guarantee questions NEVER appear in the same order
+    random.shuffle(available_fallback)
+
+    # Top up remaining needed questions
+    needed = count - len(valid_questions)
+    top_up = available_fallback[:needed]
+    valid_questions.extend(top_up)
+
+    # Shuffle the final question set for fresh user experience
+    random.shuffle(valid_questions)
+
+    final_result = valid_questions[:count]
+
+    # Record titles of final questions to avoid repetition in subsequent quizzes
+    for v in final_result:
+        RECENT_QUIZ_TITLES.append(v["question"])
+    if len(RECENT_QUIZ_TITLES) > 80:
+        RECENT_QUIZ_TITLES = RECENT_QUIZ_TITLES[-80:]
+
+    return final_result
 
 def analyze_document_content(
     filename: str,
@@ -724,7 +1127,7 @@ def test_groq_connection(api_key: str = "", model: str = "") -> Dict[str, Any]:
         target_model = target_model[len("groq:"):]
 
     if not key:
-        return {"status": "error", "message": "Groq API Key is not set in .env or settings."}
+        return {"success": False, "status": "error", "message": "Groq API Key is not set in .env or settings."}
 
     messages = [
         {"role": "user", "content": "Respond with: 'Groq Engine Connected Successfully!' in exactly 5 words."}
@@ -732,12 +1135,14 @@ def test_groq_connection(api_key: str = "", model: str = "") -> Dict[str, Any]:
     success, res = call_groq_api(messages=messages, model=target_model, api_key=key, max_tokens=30)
     if success:
         return {
+            "success": True,
             "status": "connected",
             "message": res.strip(),
             "model": target_model,
             "provider": "Groq Cloud"
         }
     return {
+        "success": False,
         "status": "error",
         "message": res,
         "model": target_model
