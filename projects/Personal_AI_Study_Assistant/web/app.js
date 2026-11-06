@@ -178,6 +178,12 @@ function initChatEngine() {
     appendTypingIndicator(typingId);
     chatStream.scrollTop = chatStream.scrollHeight;
 
+    // Disable input and send button during AI generation
+    if (sendBtn) {
+      sendBtn.disabled = true;
+      sendBtn.style.opacity = "0.5";
+    }
+
     try {
       const apiKey = localStorage.getItem("studysync_gemini_key") || "";
       const model = localStorage.getItem("studysync_model") || "";
@@ -193,15 +199,25 @@ function initChatEngine() {
 
       const answer = data.answer || "I could not generate an answer at this moment.";
       const isRefusal = answer.includes("Sorry!") || answer.includes("academic study");
-      appendAssistantCard(answer, isRefusal);
 
-      // Increment progress on valid study questions
-      if (!isRefusal) {
-        incrementStudyProgress();
-      }
+      // ChatGPT-style character-by-character typewriter streaming!
+      streamAssistantCard(answer, isRefusal, () => {
+        if (!isRefusal) {
+          incrementStudyProgress();
+        }
+        if (sendBtn) {
+          sendBtn.disabled = false;
+          sendBtn.style.opacity = "1";
+        }
+        if (input) input.focus();
+      });
     } catch (err) {
       removeTypingIndicator(typingId);
       appendAssistantCard("⚠️ Network connection error. Please make sure the local server is running.", true);
+      if (sendBtn) {
+        sendBtn.disabled = false;
+        sendBtn.style.opacity = "1";
+      }
     }
 
     chatStream.scrollTop = chatStream.scrollHeight;
@@ -278,6 +294,109 @@ function removeTypingIndicator(id) {
   if (elem) elem.remove();
 }
 
+/**
+ * ChatGPT-style character-by-character typewriter streaming
+ */
+function streamAssistantCard(rawMarkdown, isRefusal, onComplete) {
+  const chatStream = document.getElementById("chatStream");
+  const row = document.createElement("div");
+  row.className = "message-row assistant-row";
+
+  const cardDiv = document.createElement("div");
+  cardDiv.className = `assistant-card ${isRefusal ? 'refusal-card' : ''}`;
+  cardDiv.title = "Click to skip animation and show full answer instantly";
+
+  const contentDiv = document.createElement("div");
+  contentDiv.className = "card-streaming-content";
+
+  const cursorSpan = document.createElement("span");
+  cursorSpan.className = "chatgpt-cursor";
+
+  const footerDiv = document.createElement("div");
+  footerDiv.className = "card-footer";
+  footerDiv.style.display = "none";
+
+  const timeSpan = document.createElement("span");
+  timeSpan.className = "footer-time";
+  timeSpan.innerText = getCurrentTimeStr();
+
+  const plainText = rawMarkdown.replace(/[`*#]/g, "");
+  const copyBtn = document.createElement("button");
+  copyBtn.className = "btn-copy-code";
+  copyBtn.title = "Copy answer";
+  copyBtn.setAttribute("data-copy", escapeHtml(plainText));
+  copyBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="copy-svg"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+
+  footerDiv.appendChild(timeSpan);
+  footerDiv.appendChild(copyBtn);
+
+  cardDiv.appendChild(contentDiv);
+  cardDiv.appendChild(cursorSpan);
+  cardDiv.appendChild(footerDiv);
+
+  row.innerHTML = `
+    <div class="assistant-avatar-circle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="robot-mini-svg">
+        <rect x="3" y="11" width="18" height="10" rx="2"/>
+        <circle cx="12" cy="5" r="2"/>
+        <path d="M12 7v4"/>
+        <line x1="8" y1="16" x2="8.01" y2="16"/>
+        <line x1="16" y1="16" x2="16.01" y2="16"/>
+      </svg>
+    </div>
+  `;
+  row.appendChild(cardDiv);
+  chatStream.appendChild(row);
+
+  // Click card to skip typing animation
+  let isSkipped = false;
+  cardDiv.addEventListener("click", (e) => {
+    if (!e.target.closest(".btn-copy-code")) {
+      isSkipped = true;
+    }
+  });
+
+  // Typewriter streaming loop
+  let charIndex = 0;
+  const totalLength = rawMarkdown.length;
+  // Natural pacing: 1 to 3 characters per frame depending on length
+  const step = totalLength > 1200 ? 4 : (totalLength > 600 ? 2 : 1);
+  const baseSpeed = totalLength > 1200 ? 8 : 14;
+
+  function typeTick() {
+    if (isSkipped) {
+      charIndex = totalLength;
+    } else {
+      charIndex = Math.min(totalLength, charIndex + step);
+    }
+
+    const currentSlice = rawMarkdown.slice(0, charIndex);
+    contentDiv.innerHTML = formatMarkdownResponse(currentSlice);
+
+    // Keep scrolling smoothly to follow typing
+    chatStream.scrollTop = chatStream.scrollHeight;
+
+    if (charIndex < totalLength) {
+      let delay = baseSpeed;
+      const lastChar = rawMarkdown[charIndex - 1];
+      if (lastChar === "." || lastChar === "?" || lastChar === "!") {
+        delay = baseSpeed + 45; // natural pause at end of sentence
+      } else if (lastChar === "\n") {
+        delay = baseSpeed + 30; // pause at newline
+      }
+      setTimeout(typeTick, delay);
+    } else {
+      cursorSpan.remove();
+      footerDiv.style.display = "flex";
+      setupCopyButtons();
+      chatStream.scrollTop = chatStream.scrollHeight;
+      if (onComplete) onComplete();
+    }
+  }
+
+  typeTick();
+}
+
 function appendAssistantCard(rawMarkdown, isRefusal) {
   const chatStream = document.getElementById("chatStream");
   const row = document.createElement("div");
@@ -313,18 +432,22 @@ function appendAssistantCard(rawMarkdown, isRefusal) {
 }
 
 function formatMarkdownResponse(md) {
-  if (!md) return "<p>No content generated.</p>";
+  if (!md) return "";
 
-  // Extract code blocks first
   let html = md;
 
-  // Code blocks: ```python ... ```
+  // Closed code blocks: ```lang ... ```
   html = html.replace(/```(?:python|py|javascript|js|html|css|sql|bash)?([\s\S]*?)```/g, (match, code) => {
     return `<div class="code-box"><code>${escapeHtml(code.trim())}</code></div>`;
   });
 
+  // Handle open/unclosed code blocks while actively typewriter streaming
+  html = html.replace(/```(?:python|py|javascript|js|html|css|sql|bash)?([\s\S]*)$/g, (match, code) => {
+    return `<div class="code-box"><code>${escapeHtml(code.trim())}</code></div>`;
+  });
+
   // Inline code: `code`
-  html = html.replace(/`([^`]+)`/g, (match, code) => {
+  html = html.replace(/`([^`\n]+)`/g, (match, code) => {
     return `<code style="background:#090e1c; color:#38bdf8; padding:2px 6px; border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:0.84rem;">${escapeHtml(code)}</code>`;
   });
 

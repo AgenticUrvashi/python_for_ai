@@ -659,6 +659,28 @@ body {
   font-size: 0.85rem;
 }
 
+/* CHATGPT STREAMING TYPEWRITER CURSOR */
+.chatgpt-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 16px;
+  background: var(--neon-cyan);
+  margin-left: 4px;
+  vertical-align: middle;
+  border-radius: 2px;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.9);
+  animation: chatgptCursorBlink 0.65s infinite ease-in-out;
+}
+
+@keyframes chatgptCursorBlink {
+  0%, 100% { opacity: 1; transform: scaleY(1); }
+  50% { opacity: 0.1; transform: scaleY(0.75); }
+}
+
+.card-streaming-content {
+  display: inline;
+}
+
 /* BOTTOM CHAT INPUT BAR */
 .chat-input-wrapper {
   background: var(--bg-card);
