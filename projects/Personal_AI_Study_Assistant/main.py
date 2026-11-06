@@ -65,15 +65,24 @@ class StudySyncRequestHandler(SimpleHTTPRequestHandler):
         # REST API: Dynamic Quiz generation
         if path == "/api/quiz":
             params = urllib.parse.parse_qs(parsed.query)
-            topic = params.get("topic", ["Machine Learning"])[0]
+            topic = params.get("topic", ["Python Programming"])[0]
             difficulty = params.get("difficulty", ["Intermediate"])[0]
-            count_str = params.get("count", ["4"])[0]
+            count_str = params.get("count", ["10"])[0]
             model = params.get("model", [""])[0]
+            api_key = params.get("api_key", [""])[0]
             try:
                 count = int(count_str)
             except ValueError:
-                count = 4
-            questions = generate_study_quiz(topic=topic, difficulty=difficulty, count=count, model=model)
+                count = 10
+            # Bound count to reasonable limits (1 to 30)
+            count = max(1, min(30, count))
+            questions = generate_study_quiz(
+                topic=topic,
+                difficulty=difficulty,
+                count=count,
+                custom_api_key=api_key,
+                model=model
+            )
             self._send_json(questions)
             return
 

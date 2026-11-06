@@ -449,13 +449,24 @@ function initDocumentHub() {
   const btnProcessDoc = document.getElementById("btnProcessDoc");
   const studyNotesInput = document.getElementById("studyNotesInput");
   const docAnalysisResult = document.getElementById("docAnalysisResult");
+  let uploadedFileName = "Urvashi_Study_Notes.pdf";
 
   if (btnSelectFile && fileUploadInput) {
     btnSelectFile.addEventListener("click", () => fileUploadInput.click());
     fileUploadInput.addEventListener("change", () => {
       if (fileUploadInput.files.length > 0) {
         const file = fileUploadInput.files[0];
-        studyNotesInput.value = `[Document selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)]\n\nMachine Learning and Data Structures Comprehensive Notes.`;
+        uploadedFileName = file.name;
+        if (file.name.match(/\.(txt|md|py|js|html|css|json|csv)$/i)) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            studyNotesInput.value = e.target.result;
+            showToast(`Loaded ${file.name}! Click 'Analyze Notes' below.`);
+          };
+          reader.readAsText(file);
+        } else {
+          studyNotesInput.value = `[Document selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)]\n\nStudy Notes and Chapter Concepts for ${file.name}.`;
+        }
       }
     });
   }
@@ -464,15 +475,19 @@ function initDocumentHub() {
     btnProcessDoc.addEventListener("click", async () => {
       const content = studyNotesInput.value.trim() || "Python OOP, Decorators and Algorithms Study Notes";
       btnProcessDoc.innerText = "Analyzing Notes with Groq AI...";
+      btnProcessDoc.disabled = true;
 
       try {
+        const apiKey = localStorage.getItem("studysync_gemini_key") || "";
+        const model = localStorage.getItem("studysync_model") || "";
         const response = await fetch("/api/documents/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ filename: "Urvashi_Study_Notes.pdf", content: content })
+          body: JSON.stringify({ filename: uploadedFileName, content: content, api_key: apiKey, model: model })
         });
         const data = await response.json();
         btnProcessDoc.innerText = "Analyze Notes with AI Assistant ⚡";
+        btnProcessDoc.disabled = false;
 
         docAnalysisResult.style.display = "block";
         docAnalysisResult.innerHTML = `
@@ -493,87 +508,375 @@ function initDocumentHub() {
         incrementStudyProgress();
       } catch (err) {
         btnProcessDoc.innerText = "Analyze Notes with AI Assistant ⚡";
+        btnProcessDoc.disabled = false;
         showToast("Error processing notes. Please try again.");
       }
     });
   }
 }
 
-// PRACTICE QUIZ ENGINE
+// PRACTICE QUIZ ENGINE (INTERACTIVE STEP-BY-STEP & ALL-QUESTIONS MODES)
 function initQuizEngine() {
   const btnFetchQuiz = document.getElementById("btnFetchQuiz");
   const topicInput = document.getElementById("quizCustomTopic");
   const diffSelect = document.getElementById("quizDifficultySelect");
   const countSelect = document.getElementById("quizCountSelect");
   const container = document.getElementById("quizContainer");
+  const progressStrip = document.getElementById("quizProgressStrip");
+  const currentCounter = document.getElementById("quizCurrentCounter");
+  const liveScore = document.getElementById("quizLiveScore");
+  const progressFill = document.getElementById("quizProgressFill");
+  const navPills = document.getElementById("quizNavPills");
   const scoreBanner = document.getElementById("quizScoreBanner");
+  const scoreCircle = document.getElementById("quizScoreCircle");
+  const scoreHeadline = document.getElementById("quizScoreHeadline");
   const scoreText = document.getElementById("quizScoreText");
+  const scoreFeedback = document.getElementById("quizScoreFeedback");
   const btnRestart = document.getElementById("btnRestartQuiz");
+  const btnNewQuiz = document.getElementById("btnNewQuiz");
+  const btnModeStep = document.getElementById("btnQuizModeStep");
+  const btnModeAll = document.getElementById("btnQuizModeAll");
 
   let questions = [];
-  let score = 0;
-  let answered = 0;
+  let userAnswers = {}; // { qIndex: selectedOptionIndex }
+  let currentStep = 0;
+  let quizMode = "step"; // "step" (one-by-one) or "all" (show all)
 
-  if (btnFetchQuiz) {
-    btnFetchQuiz.addEventListener("click", async () => {
-      const topic = topicInput.value.trim() || "Python Programming";
-      const diff = diffSelect.value;
-      const count = countSelect.value;
+  // Mode switcher listeners
+  if (btnModeStep && btnModeAll) {
+    btnModeStep.addEventListener("click", () => {
+      quizMode = "step";
+      btnModeStep.classList.add("active");
+      btnModeAll.classList.remove("active");
+      if (questions.length > 0) renderQuiz();
+    });
 
-      btnFetchQuiz.innerText = "Generating...";
-      scoreBanner.style.display = "none";
-      container.innerHTML = "<p class='empty-state-p'>Generating high-yield academic questions with Groq AI... ⚡</p>";
-
-      try {
-        const res = await fetch(`/api/quiz?topic=${encodeURIComponent(topic)}&difficulty=${encodeURIComponent(diff)}&count=${count}`);
-        questions = await res.json();
-        btnFetchQuiz.innerText = "Generate Quiz 🚀";
-        renderQuiz(questions);
-      } catch (err) {
-        btnFetchQuiz.innerText = "Generate Quiz 🚀";
-        container.innerHTML = "<p class='empty-state-p' style='color:#f87171;'>Could not load quiz questions. Please check connection.</p>";
-      }
+    btnModeAll.addEventListener("click", () => {
+      quizMode = "all";
+      btnModeAll.classList.add("active");
+      btnModeStep.classList.remove("active");
+      if (questions.length > 0) renderQuiz();
     });
   }
 
-  function renderQuiz(list) {
-    score = 0;
-    answered = 0;
+  // Fetch / Generate Quiz
+  async function fetchQuiz() {
+    const topic = topicInput.value.trim() || "Python Programming";
+    const diff = diffSelect.value;
+    const count = parseInt(countSelect.value, 10) || 10;
+    const apiKey = localStorage.getItem("studysync_gemini_key") || "";
+    const model = localStorage.getItem("studysync_model") || "";
+
+    btnFetchQuiz.innerText = "Generating Quiz... ⚡";
+    btnFetchQuiz.disabled = true;
+    if (progressStrip) progressStrip.style.display = "none";
+    if (scoreBanner) scoreBanner.style.display = "none";
+    container.innerHTML = `
+      <div style="text-align:center; padding:40px 20px;">
+        <div style="font-size:2rem; margin-bottom:12px;">🧠⚡</div>
+        <p style="font-size:0.95rem; font-weight:600; color:#38bdf8; margin-bottom:6px;">
+          Crafting ${count} Fresh ${diff} Questions on '${escapeHtml(topic)}'...
+        </p>
+        <p style="font-size:0.82rem; color:#94a3b8;">
+          Using Groq Cloud AI inference with diversity checking to avoid repeated questions.
+        </p>
+      </div>
+    `;
+
+    try {
+      const url = `/api/quiz?topic=${encodeURIComponent(topic)}&difficulty=${encodeURIComponent(diff)}&count=${count}&api_key=${encodeURIComponent(apiKey)}&model=${encodeURIComponent(model)}&_t=${Date.now()}`;
+      const res = await fetch(url);
+      questions = await res.json();
+      btnFetchQuiz.innerText = "Generate Quiz 🚀";
+      btnFetchQuiz.disabled = false;
+
+      if (!Array.isArray(questions) || questions.length === 0) {
+        throw new Error("No questions returned.");
+      }
+
+      userAnswers = {};
+      currentStep = 0;
+      renderQuiz();
+      showToast(`Generated ${questions.length} questions on ${topic}! 🎯`);
+    } catch (err) {
+      btnFetchQuiz.innerText = "Generate Quiz 🚀";
+      btnFetchQuiz.disabled = false;
+      container.innerHTML = `
+        <div style="text-align:center; padding:30px; color:#f87171;">
+          <p style="font-size:1rem; font-weight:700; margin-bottom:6px;">⚠️ Could not generate quiz questions.</p>
+          <p style="font-size:0.84rem; color:#94a3b8; margin-bottom:14px;">Please check server connection or configure Groq API Key in Settings.</p>
+          <button class="btn-glow-primary" id="btnRetryQuiz">Retry Now 🔄</button>
+        </div>
+      `;
+      const retryBtn = document.getElementById("btnRetryQuiz");
+      if (retryBtn) retryBtn.addEventListener("click", fetchQuiz);
+    }
+  }
+
+  if (btnFetchQuiz) btnFetchQuiz.addEventListener("click", fetchQuiz);
+
+  function getCalculatedScore() {
+    let sc = 0;
+    Object.keys(userAnswers).forEach((idxStr) => {
+      const idx = parseInt(idxStr, 10);
+      if (questions[idx] && userAnswers[idx] === questions[idx].answer) {
+        sc++;
+      }
+    });
+    return sc;
+  }
+
+  // Update progress bar and nav pills
+  function updateProgressStrip() {
+    if (!progressStrip) return;
+    if (questions.length === 0) {
+      progressStrip.style.display = "none";
+      return;
+    }
+
+    progressStrip.style.display = "block";
+    const answeredCount = Object.keys(userAnswers).length;
+    const currentScore = getCalculatedScore();
+
+    if (currentCounter) {
+      currentCounter.innerText = `Question ${currentStep + 1} of ${questions.length}`;
+    }
+    if (liveScore) {
+      liveScore.innerText = `Score: ${currentScore} / ${answeredCount}`;
+    }
+    if (progressFill) {
+      const pct = Math.round(((currentStep + 1) / questions.length) * 100);
+      progressFill.style.width = `${pct}%`;
+    }
+
+    if (navPills) {
+      navPills.innerHTML = questions.map((_, idx) => {
+        let stateClass = "";
+        if (idx === currentStep && quizMode === "step") {
+          stateClass = "active";
+        } else if (idx in userAnswers) {
+          stateClass = (userAnswers[idx] === questions[idx].answer) ? "correct" : "wrong";
+        }
+        return `
+          <button class="quiz-nav-pill ${stateClass}" data-step="${idx}" title="Jump to Q${idx + 1}">
+            ${idx + 1}
+          </button>
+        `;
+      }).join("");
+
+      navPills.querySelectorAll(".quiz-nav-pill").forEach((pill) => {
+        pill.addEventListener("click", () => {
+          const step = parseInt(pill.getAttribute("data-step"), 10);
+          currentStep = step;
+          if (quizMode === "step") {
+            renderStepCard();
+          } else {
+            const el = document.getElementById(`quiz_q_box_${step}`);
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+          updateProgressStrip();
+        });
+      });
+    }
+  }
+
+  // Render the quiz based on active mode
+  function renderQuiz() {
+    if (scoreBanner) scoreBanner.style.display = "none";
+    updateProgressStrip();
+
+    if (quizMode === "step") {
+      renderStepCard();
+    } else {
+      renderAllQuestions();
+    }
+  }
+
+  // Helper to format code blocks inside question text
+  function formatQuestionText(text) {
+    if (!text) return "";
+    let formatted = escapeHtml(text);
+    // Render code blocks ```python ... ```
+    formatted = formatted.replace(/```(?:python|py|javascript|js|sql)?([\s\S]*?)```/g, (match, code) => {
+      return `<div class="code-box" style="margin:8px 0; background:#050811;"><code>${code.trim()}</code></div>`;
+    });
+    // Render inline code `...`
+    formatted = formatted.replace(/`([^`]+)`/g, '<code style="background:#090e1c; color:#38bdf8; padding:2px 6px; border-radius:4px; font-family:\'JetBrains Mono\',monospace;">$1</code>');
+    formatted = formatted.replace(/\n/g, '<br>');
+    return formatted;
+  }
+
+  // STEP-BY-STEP (ONE-BY-ONE) RENDER
+  function renderStepCard() {
+    const q = questions[currentStep];
+    if (!q) return;
+
+    const isAnswered = currentStep in userAnswers;
+    const selectedOid = isAnswered ? userAnswers[currentStep] : null;
+    const isLast = currentStep === questions.length - 1;
+
+    container.innerHTML = `
+      <div class="quiz-step-card">
+        <div class="quiz-step-header">
+          <span style="font-weight:700; color:#38bdf8; font-size:0.92rem;">
+            Question ${currentStep + 1} of ${questions.length}
+          </span>
+          <span class="quiz-difficulty-tag">${escapeHtml(diffSelect.value || "Intermediate")}</span>
+        </div>
+
+        <div class="quiz-q-title" style="font-size:1.02rem; line-height:1.5; margin-bottom:16px;">
+          ${formatQuestionText(q.question)}
+        </div>
+
+        <div class="quiz-options-grid" id="step_options_grid">
+          ${q.options.map((opt, oIdx) => {
+            let optClass = "quiz-opt-btn";
+            if (isAnswered) {
+              if (oIdx === q.answer) {
+                optClass += " correct";
+              } else if (oIdx === selectedOid) {
+                optClass += " wrong";
+              }
+            }
+            return `
+              <button class="${optClass}" data-oid="${oIdx}" style="${isAnswered ? 'pointer-events:none;' : ''}">
+                <strong style="margin-right:8px; color:#a5b4fc;">${String.fromCharCode(65 + oIdx)}.</strong> ${escapeHtml(opt)}
+              </button>
+            `;
+          }).join("")}
+        </div>
+
+        <div id="step_explanation_box" style="display:${isAnswered ? 'block' : 'none'}; margin-top:14px; font-size:0.85rem; padding:12px 14px; border-radius:8px; background:rgba(30,41,59,0.7); border:1px solid rgba(99,102,241,0.3); color:#93c5fd; line-height:1.45;">
+          💡 <strong>Explanation:</strong> ${escapeHtml(q.explanation)}
+        </div>
+
+        <div class="quiz-step-nav-row">
+          <button class="btn-outline-subtle" id="btnStepPrev" ${currentStep === 0 ? "disabled style='opacity:0.4; cursor:not-allowed;'" : ""}>
+            ⬅ Previous
+          </button>
+
+          <div style="display:flex; gap:8px;">
+            ${!isLast ? `
+              <button class="btn-glow-primary" id="btnStepNext">
+                Next Question ➔
+              </button>
+            ` : `
+              <button class="btn-glow-primary" id="btnStepFinish" style="background:linear-gradient(135deg, #10b981, #059669);">
+                Finish & View Results 🏆
+              </button>
+            `}
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Option click handling
+    const optButtons = container.querySelectorAll("#step_options_grid .quiz-opt-btn");
+    optButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (currentStep in userAnswers) return;
+        const oid = parseInt(btn.getAttribute("data-oid"), 10);
+        userAnswers[currentStep] = oid;
+
+        optButtons.forEach(b => b.style.pointerEvents = "none");
+
+        if (oid === q.answer) {
+          btn.classList.add("correct");
+        } else {
+          btn.classList.add("wrong");
+          if (optButtons[q.answer]) optButtons[q.answer].classList.add("correct");
+        }
+
+        const expl = document.getElementById("step_explanation_box");
+        if (expl) expl.style.display = "block";
+
+        updateProgressStrip();
+
+        // If all questions are answered, check completion
+        if (Object.keys(userAnswers).length === questions.length) {
+          incrementStudyProgress();
+        }
+      });
+    });
+
+    // Navigation buttons
+    const prevBtn = document.getElementById("btnStepPrev");
+    if (prevBtn && currentStep > 0) {
+      prevBtn.addEventListener("click", () => {
+        currentStep--;
+        renderStepCard();
+        updateProgressStrip();
+      });
+    }
+
+    const nextBtn = document.getElementById("btnStepNext");
+    if (nextBtn) {
+      nextBtn.addEventListener("click", () => {
+        if (currentStep < questions.length - 1) {
+          currentStep++;
+          renderStepCard();
+          updateProgressStrip();
+        }
+      });
+    }
+
+    const finishBtn = document.getElementById("btnStepFinish");
+    if (finishBtn) {
+      finishBtn.addEventListener("click", () => {
+        showResultsSummary();
+      });
+    }
+  }
+
+  // ALL QUESTIONS RENDER MODE
+  function renderAllQuestions() {
     container.innerHTML = "";
 
-    list.forEach((q, idx) => {
+    questions.forEach((q, idx) => {
       const box = document.createElement("div");
       box.className = "quiz-q-box";
+      box.id = `quiz_q_box_${idx}`;
+
+      const isAnswered = idx in userAnswers;
+      const selectedOid = isAnswered ? userAnswers[idx] : null;
+
       box.innerHTML = `
-        <div class="quiz-q-title">Q${idx + 1}. ${escapeHtml(q.question)}</div>
+        <div class="quiz-q-title">Q${idx + 1}. ${formatQuestionText(q.question)}</div>
         <div class="quiz-options-grid" id="q_opts_${idx}">
-          ${q.options.map((opt, oIdx) => `
-            <button class="quiz-opt-btn" data-qid="${idx}" data-oid="${oIdx}">
-              ${String.fromCharCode(65 + oIdx)}. ${escapeHtml(opt)}
-            </button>
-          `).join("")}
+          ${q.options.map((opt, oIdx) => {
+            let optClass = "quiz-opt-btn";
+            if (isAnswered) {
+              if (oIdx === q.answer) optClass += " correct";
+              else if (oIdx === selectedOid) optClass += " wrong";
+            }
+            return `
+              <button class="${optClass}" data-qid="${idx}" data-oid="${oIdx}" style="${isAnswered ? 'pointer-events:none;' : ''}">
+                <strong style="margin-right:8px; color:#a5b4fc;">${String.fromCharCode(65 + oIdx)}.</strong> ${escapeHtml(opt)}
+              </button>
+            `;
+          }).join("")}
         </div>
-        <div id="q_expl_${idx}" style="display:none; margin-top:10px; font-size:0.82rem; padding:8px 12px; border-radius:6px; background:rgba(30,41,59,0.7); color:#93c5fd;">
+        <div id="q_expl_${idx}" style="display:${isAnswered ? 'block' : 'none'}; margin-top:10px; font-size:0.82rem; padding:8px 12px; border-radius:6px; background:rgba(30,41,59,0.7); color:#93c5fd;">
           💡 <strong>Explanation:</strong> ${escapeHtml(q.explanation)}
         </div>
       `;
       container.appendChild(box);
     });
 
-    document.querySelectorAll(".quiz-opt-btn").forEach((btn) => {
+    container.querySelectorAll(".quiz-opt-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const qid = parseInt(btn.getAttribute("data-qid"));
-        const oid = parseInt(btn.getAttribute("data-oid"));
-        const qObj = list[qid];
+        const qid = parseInt(btn.getAttribute("data-qid"), 10);
+        const oid = parseInt(btn.getAttribute("data-oid"), 10);
+        if (qid in userAnswers) return;
 
+        userAnswers[qid] = oid;
+        const qObj = questions[qid];
         const parent = document.getElementById(`q_opts_${qid}`);
         const allBtns = parent.querySelectorAll(".quiz-opt-btn");
         allBtns.forEach(b => b.style.pointerEvents = "none");
 
-        answered++;
         if (oid === qObj.answer) {
           btn.classList.add("correct");
-          score++;
         } else {
           btn.classList.add("wrong");
           if (allBtns[qObj.answer]) allBtns[qObj.answer].classList.add("correct");
@@ -582,18 +885,118 @@ function initQuizEngine() {
         const expl = document.getElementById(`q_expl_${qid}`);
         if (expl) expl.style.display = "block";
 
-        if (answered === list.length) {
-          scoreBanner.style.display = "flex";
-          scoreText.innerText = `Score: ${score} / ${list.length}`;
+        updateProgressStrip();
+
+        if (Object.keys(userAnswers).length === questions.length) {
+          showResultsSummary();
           incrementStudyProgress();
         }
       });
     });
   }
 
+  // SHOW RESULTS SUMMARY SCREEN
+  function showResultsSummary() {
+    if (progressStrip) progressStrip.style.display = "none";
+    if (!scoreBanner) return;
+
+    const total = questions.length;
+    const finalScore = getCalculatedScore();
+    const pct = total > 0 ? Math.round((finalScore / total) * 100) : 0;
+
+    scoreBanner.style.display = "flex";
+    if (scoreCircle) {
+      scoreCircle.innerText = `${pct}%`;
+      if (pct >= 80) {
+        scoreCircle.style.background = "linear-gradient(135deg, #10b981, #059669)";
+      } else if (pct >= 50) {
+        scoreCircle.style.background = "linear-gradient(135deg, #6366f1, #a855f7)";
+      } else {
+        scoreCircle.style.background = "linear-gradient(135deg, #f59e0b, #d97706)";
+      }
+    }
+
+    if (scoreHeadline) {
+      if (pct === 100) scoreHeadline.innerText = "🏆 Flawless Victory! Perfect Score!";
+      else if (pct >= 80) scoreHeadline.innerText = "🎉 Outstanding Performance!";
+      else if (pct >= 50) scoreHeadline.innerText = "👍 Solid Effort! Good Knowledge!";
+      else scoreHeadline.innerText = "📚 Keep Practicing & Review Concepts!";
+    }
+
+    if (scoreText) {
+      scoreText.innerText = `Score: ${finalScore} / ${total} (${pct}%)`;
+    }
+
+    if (scoreFeedback) {
+      const unanswered = total - Object.keys(userAnswers).length;
+      if (unanswered > 0) {
+        scoreFeedback.innerText = `You completed ${Object.keys(userAnswers).length} of ${total} questions. Review your answers below:`;
+      } else if (pct >= 80) {
+        scoreFeedback.innerText = "You have demonstrated strong conceptual command over this study topic!";
+      } else {
+        scoreFeedback.innerText = "Review the explanations below to reinforce key academic principles.";
+      }
+    }
+
+    // Render detailed review summary
+    let reviewHtml = `
+      <div class="quiz-review-wrap">
+        <h4 style="color:#a5b4fc; font-size:0.95rem; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+          <span>📋</span> Question by Question Review
+        </h4>
+    `;
+
+    questions.forEach((q, idx) => {
+      const isAns = idx in userAnswers;
+      const userChoice = isAns ? userAnswers[idx] : null;
+      const isCorrect = isAns && (userChoice === q.answer);
+
+      let statusBadge = `<span style="color:#f87171; font-weight:700;">❌ Incorrect</span>`;
+      if (isCorrect) statusBadge = `<span style="color:#34d399; font-weight:700;">✅ Correct</span>`;
+      else if (!isAns) statusBadge = `<span style="color:#94a3b8; font-weight:700;">⚪ Unanswered</span>`;
+
+      reviewHtml += `
+        <div class="quiz-review-item">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+            <strong style="color:#ffffff; font-size:0.9rem;">Q${idx + 1}. ${escapeHtml(q.question)}</strong>
+            <span style="font-size:0.78rem; margin-left:12px; white-space:nowrap;">${statusBadge}</span>
+          </div>
+
+          <div style="font-size:0.83rem; color:#cbd5e1; margin-bottom:4px;">
+            ${isAns ? `Your Answer: <strong style="color:${isCorrect ? '#34d399' : '#f87171'}">${String.fromCharCode(65 + userChoice)}. ${escapeHtml(q.options[userChoice])}</strong>` : '<em style="color:#94a3b8;">Not attempted</em>'}
+          </div>
+
+          ${!isCorrect ? `
+            <div style="font-size:0.83rem; color:#34d399; margin-bottom:6px;">
+              Correct Answer: <strong>${String.fromCharCode(65 + q.answer)}. ${escapeHtml(q.options[q.answer])}</strong>
+            </div>
+          ` : ''}
+
+          <div style="font-size:0.8rem; color:#93c5fd; background:rgba(30,41,59,0.5); padding:6px 10px; border-radius:6px; margin-top:6px;">
+            💡 ${escapeHtml(q.explanation)}
+          </div>
+        </div>
+      `;
+    });
+
+    reviewHtml += "</div>";
+    container.innerHTML = reviewHtml;
+  }
+
+  // Retake same quiz questions
   if (btnRestart) {
     btnRestart.addEventListener("click", () => {
-      if (btnFetchQuiz) btnFetchQuiz.click();
+      userAnswers = {};
+      currentStep = 0;
+      renderQuiz();
+      showToast("Quiz reset! Try to score 100%! 🚀");
+    });
+  }
+
+  // Generate a brand new fresh set of questions
+  if (btnNewQuiz) {
+    btnNewQuiz.addEventListener("click", () => {
+      fetchQuiz();
     });
   }
 }
@@ -673,24 +1076,29 @@ function initFlashcardsEngine() {
     btnGenCards.addEventListener("click", async () => {
       const topic = topicInput.value.trim() || "Python";
       btnGenCards.innerText = "Generating...";
+      btnGenCards.disabled = true;
 
       try {
+        const apiKey = localStorage.getItem("studysync_gemini_key") || "";
+        const model = localStorage.getItem("studysync_model") || "";
         const res = await fetch("/api/flashcards", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ topic: topic, count: 5 })
+          body: JSON.stringify({ topic: topic, count: 5, api_key: apiKey, model: model })
         });
         const data = await res.json();
         btnGenCards.innerText = "Generate Cards 📇";
+        btnGenCards.disabled = false;
 
         if (data.flashcards && data.flashcards.length > 0) {
-          cards = data.flashcards;
+          cards = data.flashcards.map(c => ({ q: c.front, a: c.back }));
           currentIndex = 0;
           updateCard();
           showToast(`Generated 5 cards on ${topic}!`);
         }
       } catch (err) {
         btnGenCards.innerText = "Generate Cards 📇";
+        btnGenCards.disabled = false;
         showToast("Error generating flashcards.");
       }
     });
@@ -725,9 +1133,9 @@ function initSettings() {
           body: JSON.stringify({ api_key: key, model: modelSelect.value })
         });
         const data = await res.json();
-        if (data.success) {
+        if (data.success || data.status === "connected") {
           statusMsg.style.color = "#34d399";
-          statusMsg.innerText = "✅ Groq Cloud connection verified! Ultra-fast response active.";
+          statusMsg.innerText = "✅ Groq Cloud connection verified! " + (data.message || "Ultra-fast response active.");
         } else {
           statusMsg.style.color = "#f87171";
           statusMsg.innerText = "⚠️ " + (data.message || "Failed to connect.");
