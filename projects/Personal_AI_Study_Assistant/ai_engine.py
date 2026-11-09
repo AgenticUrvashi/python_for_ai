@@ -25,7 +25,13 @@ import urllib.request
 from typing import Any, Dict, List, Optional, Tuple
 
 import config
-from topic_filter import is_math_expression, is_study_related
+from topic_filter import (
+    NON_STUDY_PATTERNS,
+    is_math_expression,
+    is_study_related,
+    detect_conversational_intent,
+    get_conversational_response
+)
 
 # Safe arithmetic operators
 OPERATORS = {
@@ -264,6 +270,55 @@ def call_gemini_api(question: str, api_key: str) -> str:
     except Exception as e:
         return f"Gemini API Error: {str(e)}"
 
+def is_study_conversation(question: str, history: Optional[List[Dict[str, str]]] = None) -> bool:
+    """
+    Evaluates whether the question is educational, either standalone or as a contextual
+    follow-up in an ongoing multi-turn study conversation.
+    Enforces strict guardrails against entertainment, sports, gossip, romance, and non-academic chatter.
+    """
+    if not question or not question.strip():
+        return False
+
+    cleaned = question.strip().lower()
+
+    # 1. Strictly block any explicit non-study patterns (movies, sports, gossip, romance, politics)
+    for pattern in NON_STUDY_PATTERNS:
+        if re.search(pattern, cleaned, re.IGNORECASE):
+            return False
+
+    # 2. Check standalone study criteria
+    if is_study_related(question):
+        return True
+
+    # 3. Pure conversational intents (bye, thanks, hi, etc.) are handled separately by conversational engine
+    if detect_conversational_intent(question):
+        return False
+
+    # 4. Multi-turn context resolution: if user is in an active study conversation, allow follow-up questions
+    if history:
+        has_academic_context = False
+        for turn in reversed(history[-6:]):
+            content = turn.get("content", "")
+            if is_study_related(content):
+                has_academic_context = True
+                break
+
+        if has_academic_context:
+            follow_up_tokens = [
+                r"\bwhy\b", r"\bhow\b", r"\bwhat\b", r"\bexample\b", r"\bcode\b", r"\bexplain\b",
+                r"\bmore\b", r"\boutput\b", r"\berror\b", r"\bdifference\b", r"\bcompare\b",
+                r"\bsyntax\b", r"\bline\b", r"\bcomplexity\b", r"\bsolve\b", r"\bshow\b",
+                r"\btell\b", r"\bcontinue\b", r"\bagain\b", r"\bkya\b", r"\bkaise\b", r"\bkyun\b",
+                r"\bbatao\b", r"\bsamjhao\b", r"\bantar\b", r"\budaharan\b", r"\bis it\b",
+                r"\bdoes it\b", r"\bcan you\b", r"\bthis\b", r"\bthat\b", r"\bthese\b",
+                r"\bnext\b", r"\bprevious\b", r"\bstep\b", r"\bmeaning\b", r"\bsummarize\b",
+                r"\bderive\b", r"\bproof\b", r"\bformula\b", r"\bbetter\b", r"\bfaster\b", r"\bworse\b"
+            ]
+            if any(re.search(pat, cleaned) for pat in follow_up_tokens):
+                return True
+
+    return False
+
 def get_ai_response(
     question: str,
     custom_api_key: str = "",
@@ -274,11 +329,12 @@ def get_ai_response(
 ) -> Any:
     """
     Main entry point for answering academic questions:
-    1. Check study guardrail. If not study-related, return polite refusal.
-    2. Try math evaluation if applicable.
-    3. Construct persona-tailored prompt.
-    4. Call Groq high-speed model with conversation context.
-    5. Fallback to Gemini or comprehensive offline knowledge base.
+    1. Check conversational pleasantries (greetings, farewells, gratitude, identity).
+    2. Check study guardrail with multi-turn conversation context.
+    3. Try math evaluation if applicable.
+    4. Construct persona-tailored prompt based on Study Mode.
+    5. Call Groq high-speed model with up to 10 turns of conversation context.
+    6. Fallback to Gemini or comprehensive offline knowledge base.
     """
     question = question.strip()
     if not question:
@@ -292,8 +348,21 @@ def get_ai_response(
             }
         return msg
 
-    # STRICT STUDY FILTER ENFORCEMENT
-    if not is_study_related(question):
+    # 0. Conversational pleasantries handling (greetings, farewells, gratitude, identity)
+    conv_intent = detect_conversational_intent(question)
+    if conv_intent:
+        conv_ans = get_conversational_response(conv_intent)
+        if return_details:
+            return {
+                "answer": conv_ans,
+                "is_study_related": True,
+                "model_used": "conversational-tutor",
+                "mode": mode
+            }
+        return conv_ans
+
+    # STRICT STUDY FILTER ENFORCEMENT WITH MULTI-TURN CONTEXT RESOLUTION
+    if not is_study_conversation(question, conversation_history):
         if return_details:
             return {
                 "answer": SORRY_MESSAGE,
@@ -339,9 +408,9 @@ def get_ai_response(
     # Prepare message list for Groq
     messages: List[Dict[str, str]] = [{"role": "system", "content": full_system_prompt}]
 
-    # Include recent conversation context (up to 6 turns)
+    # Include recent conversation context (up to 10 turns for rich multi-turn continuity)
     if conversation_history:
-        for turn in conversation_history[-6:]:
+        for turn in conversation_history[-10:]:
             role = turn.get("role")
             content = turn.get("content", "")
             if role in ("user", "assistant") and content:

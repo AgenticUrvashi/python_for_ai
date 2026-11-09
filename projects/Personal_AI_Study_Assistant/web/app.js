@@ -68,11 +68,25 @@ function initModals() {
     btnOpenSettings.addEventListener("click", () => openModal("modalSettings"));
   }
 
-  // Study Mode button in header
+  // Study Mode persona toggle button in header
   const btnStudyMode = document.getElementById("btnStudyModeToggle");
+  const studyModeLabel = document.getElementById("studyModeLabel");
+  const studyPersonas = [
+    { id: "explainer", name: "Explainer 🎓", title: "Concept Explainer" },
+    { id: "code", name: "Code Tutor 💻", title: "Code & Debug Tutor" },
+    { id: "exam", name: "Exam Notes 📝", title: "Exam High-Yield Notes" },
+    { id: "math", name: "Math Solver 🧮", title: "Step-by-Step Math Solver" }
+  ];
+  let currentPersonaIdx = 0;
+
   if (btnStudyMode) {
     btnStudyMode.addEventListener("click", () => {
-      showToast("🟢 Study Mode Active: Academic guardrail ensures 100% focus on learning!");
+      currentPersonaIdx = (currentPersonaIdx + 1) % studyPersonas.length;
+      currentStudyMode = studyPersonas[currentPersonaIdx].id;
+      if (studyModeLabel) {
+        studyModeLabel.innerText = "Mode: " + studyPersonas[currentPersonaIdx].name;
+      }
+      showToast(`🎯 Active Study Persona: ${studyPersonas[currentPersonaIdx].title}`);
     });
   }
 
@@ -149,7 +163,20 @@ function initMascotCard() {
   }
 }
 
-// CHAT & AI QUESTION ANSWERING
+// GLOBAL STATE: Multi-turn conversation context & Active Study Persona
+let currentStudyMode = "explainer";
+let conversationHistory = [
+  {
+    role: "user",
+    content: "Explain list comprehension in Python with an example."
+  },
+  {
+    role: "assistant",
+    content: "List comprehension is a concise way to create a new list from an existing iterable (like a list, tuple, etc.) using a single line of code. It makes your code shorter and easier to read."
+  }
+];
+
+// CHAT & AI QUESTION ANSWERING (MULTI-TURN AWARE)
 function initChatEngine() {
   const chatStream = document.getElementById("chatStream");
   const input = document.getElementById("mainQuestionInput");
@@ -170,6 +197,9 @@ function initChatEngine() {
     input.value = "";
     appendUserBubble(text);
 
+    // Save user turn in multi-turn conversation history
+    conversationHistory.push({ role: "user", content: text });
+
     // Scroll to bottom
     chatStream.scrollTop = chatStream.scrollHeight;
 
@@ -188,22 +218,37 @@ function initChatEngine() {
       const apiKey = localStorage.getItem("studysync_gemini_key") || "";
       const model = localStorage.getItem("studysync_model") || "";
 
+      // Send active question along with last 10 turns of conversation history and active mode
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: text, api_key: apiKey, model: model })
+        body: JSON.stringify({
+          question: text,
+          api_key: apiKey,
+          model: model,
+          mode: currentStudyMode,
+          history: conversationHistory.slice(-10)
+        })
       });
 
       const data = await response.json();
       removeTypingIndicator(typingId);
 
       const answer = data.answer || "I could not generate an answer at this moment.";
-      const isRefusal = answer.includes("Sorry!") || answer.includes("academic study");
+      const isRefusal = data.is_study_related === false || answer.includes("Sorry!");
 
       // ChatGPT-style character-by-character typewriter streaming!
       streamAssistantCard(answer, isRefusal, () => {
         if (!isRefusal) {
+          // Record assistant answer into conversation history
+          conversationHistory.push({ role: "assistant", content: answer });
+          if (conversationHistory.length > 20) {
+            conversationHistory = conversationHistory.slice(-20);
+          }
           incrementStudyProgress();
+        } else {
+          // If query was non-study and refused, discard the user turn so history stays educational
+          conversationHistory.pop();
         }
         if (sendBtn) {
           sendBtn.disabled = false;
@@ -212,6 +257,7 @@ function initChatEngine() {
         if (input) input.focus();
       });
     } catch (err) {
+      conversationHistory.pop(); // discard failed attempt
       removeTypingIndicator(typingId);
       appendAssistantCard("⚠️ Network connection error. Please make sure the local server is running.", true);
       if (sendBtn) {
@@ -491,7 +537,7 @@ function escapeHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
-// QUICK ACTIONS (RIGHT SIDEBAR)
+// QUICK ACTIONS (RIGHT SIDEBAR - CONTEXT-AWARE)
 function initQuickActions() {
   const qaNotes = document.getElementById("qaShowNotes");
   const qaExample = document.getElementById("qaGiveExample");
@@ -507,21 +553,36 @@ function initQuickActions() {
 
   if (qaExample) {
     qaExample.addEventListener("click", () => {
-      input.value = "Give a practical coding example with line-by-line explanation.";
+      const currentInput = input.value.trim();
+      if (currentInput) {
+        input.value = `Give a practical code or mathematical example for '${currentInput}' with line-by-line explanation.`;
+      } else {
+        input.value = "Give a practical coding or mathematical example with line-by-line explanation based on our discussion.";
+      }
       sendBtn.click();
     });
   }
 
   if (qaSummarize) {
     qaSummarize.addEventListener("click", () => {
-      input.value = "Summarize the key study takeaways into concise revision bullet points.";
+      const currentInput = input.value.trim();
+      if (currentInput) {
+        input.value = `Summarize '${currentInput}' into high-yield revision bullet points.`;
+      } else {
+        input.value = "Summarize the key study takeaways into concise revision bullet points.";
+      }
       sendBtn.click();
     });
   }
 
   if (qaExplain) {
     qaExplain.addEventListener("click", () => {
-      input.value = "Explain this concept in simple terms using an intuitive analogy.";
+      const currentInput = input.value.trim();
+      if (currentInput) {
+        input.value = `Explain '${currentInput}' in simple terms using an intuitive real-world analogy.`;
+      } else {
+        input.value = "Explain this concept in simple terms using an intuitive analogy.";
+      }
       sendBtn.click();
     });
   }
