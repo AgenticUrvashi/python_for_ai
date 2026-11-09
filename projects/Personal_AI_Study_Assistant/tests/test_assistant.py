@@ -9,6 +9,7 @@ import config
 from topic_filter import is_study_related
 from ai_engine import (
     get_ai_response,
+    is_study_conversation,
     safe_eval_math,
     generate_study_quiz,
     analyze_document_content,
@@ -35,6 +36,80 @@ class TestStudyAssistant(unittest.TestCase):
         self.assertFalse(is_study_related("What is the IPL cricket score today?"))
         self.assertFalse(is_study_related("Will you marry me?"))
         self.assertFalse(is_study_related("Today weather forecast in Delhi"))
+
+    def test_multi_turn_study_conversation_context(self):
+        history = [
+            {"role": "user", "content": "What is binary search?"},
+            {"role": "assistant", "content": "Binary search is an algorithm for finding target in sorted array."}
+        ]
+        # Follow-up questions that depend on prior context should be recognized as educational
+        self.assertTrue(is_study_conversation("Give an example", history))
+        self.assertTrue(is_study_conversation("Why is that so?", history))
+        self.assertTrue(is_study_conversation("Can you explain line 2?", history))
+        self.assertTrue(is_study_conversation("How does it work?", history))
+
+        # Explicit non-study questions must STILL be rejected even inside study history
+        self.assertFalse(is_study_conversation("Who is Salman Khan?", history))
+        self.assertFalse(is_study_conversation("What is the IPL cricket score today?", history))
+        self.assertFalse(is_study_conversation("Will you marry me?", history))
+
+        # Conversational farewells and pleasantries are handled by the conversational engine, not as study questions
+        self.assertFalse(is_study_conversation("bye", history))
+        self.assertFalse(is_study_conversation("thanks", history))
+
+    def test_farewell_response_no_fake_study_concept(self):
+        # Test standalone 'bye'
+        res_standalone = get_ai_response("bye", return_details=True)
+        self.assertTrue(res_standalone["is_study_related"])
+        self.assertEqual(res_standalone["model_used"], "conversational-tutor")
+        self.assertNotIn("Study Concept: Bye", res_standalone["answer"])
+        self.assertNotIn("Sorry!", res_standalone["answer"])
+        self.assertIn("Goodbye", res_standalone["answer"])
+
+        # Test 'bye' with conversation history (the exact scenario from the bug report)
+        history = [
+            {"role": "user", "content": "What is binary search?"},
+            {"role": "assistant", "content": "Binary search is an efficient search algorithm."}
+        ]
+        res_history = get_ai_response("bye", conversation_history=history, return_details=True)
+        self.assertTrue(res_history["is_study_related"])
+        self.assertEqual(res_history["model_used"], "conversational-tutor")
+        self.assertNotIn("Study Concept: Bye", res_history["answer"])
+        self.assertNotIn("Sorry!", res_history["answer"])
+        self.assertIn("Goodbye", res_history["answer"])
+
+    def test_conversational_pleasantries(self):
+        # Greetings
+        res_hello = get_ai_response("hello", return_details=True)
+        self.assertTrue(res_hello["is_study_related"])
+        self.assertEqual(res_hello["model_used"], "conversational-tutor")
+        self.assertIn("Hello", res_hello["answer"])
+
+        # Gratitude
+        res_thanks = get_ai_response("thank you so much", return_details=True)
+        self.assertTrue(res_thanks["is_study_related"])
+        self.assertEqual(res_thanks["model_used"], "conversational-tutor")
+        self.assertIn("Welcome", res_thanks["answer"])
+
+        # Acknowledgment
+        res_ok = get_ai_response("got it", return_details=True)
+        self.assertTrue(res_ok["is_study_related"])
+        self.assertEqual(res_ok["model_used"], "conversational-tutor")
+
+        # Identity
+        res_who = get_ai_response("who are you?", return_details=True)
+        self.assertTrue(res_who["is_study_related"])
+        self.assertIn("StudySync Pro", res_who["answer"])
+
+    def test_multi_turn_ai_response_context(self):
+        history = [
+            {"role": "user", "content": "What is binary search in python?"},
+            {"role": "assistant", "content": "Binary search is a divide and conquer algorithm with O(log n) time."}
+        ]
+        res = get_ai_response("What is its time complexity?", conversation_history=history, return_details=True)
+        self.assertTrue(res["is_study_related"])
+        self.assertNotIn("Sorry!", res["answer"])
+        self.assertTrue("log" in res["answer"].lower() or "o(log n)" in res["answer"].lower() or "complexity" in res["answer"].lower())
 
     def test_ai_response_sorry_for_non_study(self):
         response = get_ai_response("Who won the IPL match?")
