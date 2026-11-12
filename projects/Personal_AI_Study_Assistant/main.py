@@ -192,15 +192,19 @@ class StudySyncRequestHandler(SimpleHTTPRequestHandler):
         self.wfile.write(content)
 
 
+class ReusableHTTPServer(HTTPServer):
+    allow_reuse_address = True
+
+
 def start_server():
     server_address = (config.HOST, config.PORT)
     try:
-        httpd = HTTPServer(server_address, StudySyncRequestHandler)
+        httpd = ReusableHTTPServer(server_address, StudySyncRequestHandler)
     except OSError:
         # Port fallback if 5000 is occupied
         config.PORT = 5050
         server_address = (config.HOST, config.PORT)
-        httpd = HTTPServer(server_address, StudySyncRequestHandler)
+        httpd = ReusableHTTPServer(server_address, StudySyncRequestHandler)
 
     url = f"http://{server_address[0]}:{server_address[1]}"
     print("=" * 70)

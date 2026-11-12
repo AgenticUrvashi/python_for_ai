@@ -259,11 +259,30 @@ function initChatEngine() {
     } catch (err) {
       conversationHistory.pop(); // discard failed attempt
       removeTypingIndicator(typingId);
-      appendAssistantCard("⚠️ Network connection error. Please make sure the local server is running.", true);
+      const serverDownMd = 
+        "### ⚠️ Local Python Server Reachable Nahi Hai\n\n" +
+        "*(Aapke laptop me internet bilkul theek hai! Lekin local Python backend server **http://127.0.0.1:5000** band ho gaya hai.)*\n\n" +
+        "👉 **Ise theek karne ke liye:**\n" +
+        "1. Terminal me jaakar run karein: `python main.py`\n" +
+        "2. Server start hote hi neeche diye button par click karein:";
+      appendAssistantCard(serverDownMd, true);
+
+      const retryRow = document.createElement("div");
+      retryRow.className = "message-row assistant-row";
+      retryRow.style.marginTop = "-6px";
+      retryRow.innerHTML = `
+        <div class="assistant-avatar-circle" style="visibility:hidden;"></div>
+        <button class="btn-primary" style="padding:7px 16px; font-size:0.85rem; border-radius:8px; cursor:pointer;" onclick="window.retryQuestion(${JSON.stringify(q)})">
+          🔄 Retry: "${escapeHtml(q)}"
+        </button>
+      `;
+      chatStream.appendChild(retryRow);
+
       if (sendBtn) {
         sendBtn.disabled = false;
         sendBtn.style.opacity = "1";
       }
+      if (input) input.focus();
     }
 
     chatStream.scrollTop = chatStream.scrollHeight;
@@ -278,6 +297,13 @@ function initChatEngine() {
       }
     });
   }
+
+  window.retryQuestion = function(qText) {
+    if (input) {
+      input.value = qText;
+      handleSend();
+    }
+  };
 }
 
 function getCurrentTimeStr() {
