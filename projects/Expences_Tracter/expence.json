@@ -1,1 +1,58 @@
-[]
+[
+    {
+        "user_id": "725010",
+        "user_title": "saving",
+        "user_amount": 5000.0,
+        "user_catagery": "Investment",
+        "user_date": "2026-11-16",
+        "type": "Income"
+    },
+    {
+        "user_id": "912021",
+        "user_title": "grocery shopping",
+        "user_amount": 1000.0,
+        "user_catagery": "Shopping",
+        "user_date": "2026-10-20",
+        "type": "Expense"
+    },
+    {
+        "user_id": "931514",
+        "user_title": "bus",
+        "user_amount": 16.0,
+        "user_catagery": "Travel",
+        "user_date": "2026-11-03",
+        "type": "Expense"
+    },
+    {
+        "user_id": "058572",
+        "user_title": "medicine",
+        "user_amount": 500.0,
+        "user_catagery": "Health",
+        "user_date": "2026-11-09",
+        "type": "Expense"
+    },
+    {
+        "user_id": "401552",
+        "user_title": "payment",
+        "user_amount": 2000.0,
+        "user_catagery": "Salary",
+        "user_date": "2026-10-10",
+        "type": "Income"
+    },
+    {
+        "user_id": "448202",
+        "user_title": "payment",
+        "user_amount": 4000.0,
+        "user_catagery": "Salary",
+        "user_date": "2026-09-09",
+        "type": "Income"
+    },
+    {
+        "user_id": "783434",
+        "user_title": "flight",
+        "user_amount": 2000.0,
+        "user_catagery": "Travel",
+        "user_date": "2026-09-28",
+        "type": "Expense"
+    }
+]

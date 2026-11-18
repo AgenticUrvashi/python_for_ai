@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expense Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Window Container with Desktop Frame Styling -->
+  <div class="app-window">
+    
+    <!-- Custom Windows Desktop Title Bar -->
+    <header class="window-titlebar">
+      <div class="titlebar-left">
+        <span class="app-icon">👛</span>
+        <span class="app-title-text">Expense Tracker</span>
+      </div>
+      <div class="window-controls">
+        <button class="win-btn win-minimize" title="Minimize" id="winMinimizeBtn">&#x2014;</button>
+        <button class="win-btn win-maximize" title="Maximize" id="winMaximizeBtn">&#x25A2;</button>
+        <button class="win-btn win-close" title="Close" id="winCloseBtn">&#x2715;</button>
+      </div>
+    </header>
+
+    <div class="app-body">
+      <!-- LEFT SIDEBAR -->
+      <aside class="sidebar">
+        <!-- Logo Branding -->
+        <div class="sidebar-brand">
+          <div class="wallet-badge-wrap">
+            <div class="wallet-glow"></div>
+            <div class="wallet-icon-3d">
+              <svg viewBox="0 0 100 100" class="wallet-svg">
+                <!-- Coin behind -->
+                <circle cx="68" cy="28" r="14" fill="#fbbf24" stroke="#f59e0b" stroke-width="2"/>
+                <text x="68" y="33" font-size="12" font-weight="bold" fill="#b45309" text-anchor="middle">₹</text>
+                <!-- Sparkles -->
+                <path d="M 22 26 L 25 20 L 28 26 L 34 29 L 28 32 L 25 38 L 22 32 L 16 29 Z" fill="#fde047"/>
+                <path d="M 85 45 L 87 40 L 89 45 L 94 47 L 89 49 L 87 54 L 85 49 L 80 47 Z" fill="#fde047"/>
+                <!-- Main Wallet Body -->
+                <rect x="18" y="30" width="66" height="52" rx="14" fill="url(#walletGrad)" filter="drop-shadow(0 8px 12px rgba(0,0,0,0.3))"/>
+                <!-- Wallet Flap & Clasp -->
+                <path d="M 18 38 C 18 34, 22 30, 28 30 L 74 30 C 80 30, 84 34, 84 38 L 84 46 C 84 50, 80 54, 74 54 L 28 54 C 22 54, 18 50, 18 46 Z" fill="url(#flapGrad)"/>
+                <!-- Clasp button -->
+                <circle cx="68" cy="56" r="6" fill="#fde047" stroke="#ca8a04" stroke-width="2"/>
+                <defs>
+                  <linearGradient id="walletGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#9d74f7"/>
+                    <stop offset="100%" stop-color="#6232d9"/>
+                  </linearGradient>
+                  <linearGradient id="flapGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#b18dfa"/>
+                    <stop offset="100%" stop-color="#7c43ea"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+          </div>
+          <h1 class="brand-title">Expense Tracker</h1>
+          <p class="brand-subtitle">Plan &bull; Track &bull; Save &#9825;</p>
+        </div>
+
+        <!-- Navigation Menu -->
+        <nav class="sidebar-nav">
+          <button class="nav-item active" id="btnNavAdd" data-action="add">
+            <span class="nav-icon-circle">+</span>
+            <span class="nav-text">Add Expense</span>
+          </button>
+          <button class="nav-item" id="btnNavView" data-action="view">
+            <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <span class="nav-text">View Expense</span>
+          </button>
+          <button class="nav-item" id="btnNavSearch" data-action="search">
+            <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <span class="nav-text">Search Expense</span>
+          </button>
+          <button class="nav-item" id="btnNavDelete" data-action="delete">
+            <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+            <span class="nav-text">Delete Expense</span>
+          </button>
+          <button class="nav-item" id="btnNavTotal" data-action="total">
+            <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="20" x2="18" y2="10"/>
+              <line x1="12" y1="20" x2="12" y2="4"/>
+              <line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+            <span class="nav-text">Total Expense</span>
+          </button>
+          <button class="nav-item" id="btnNavExit" data-action="exit">
+            <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            <span class="nav-text">Exit</span>
+          </button>
+        </nav>
+
+        <!-- Sidebar Footer Botanical Quote -->
+        <div class="sidebar-footer">
+          <p class="quote-text">Save Today...<br>For a Better Tomorrow &#9825;</p>
+          <div class="botanical-leaves">
+            <svg viewBox="0 0 120 80" class="leaves-svg">
+              <path d="M10 70 Q 30 40 50 20 Q 70 35 60 70 Q 35 75 10 70 Z" fill="#352362"/>
+              <path d="M40 75 Q 70 50 90 35 Q 105 55 95 80 Z" fill="#2a1c50"/>
+              <path d="M5 80 Q 20 60 40 50 Q 30 75 5 80 Z" fill="#251747"/>
+            </svg>
+          </div>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT DASHBOARD -->
+      <main class="main-dashboard">
+        <!-- Top Welcome Bar -->
+        <section class="welcome-header">
+          <div class="welcome-text-wrap">
+            <h2 class="welcome-title">
+              <span class="sparkle-icon">&#10024;</span> Welcome to Expense Tracker!
+            </h2>
+            <p class="welcome-subtitle">
+              Manage your expenses easily and smartly. <span class="purple-heart">&#128156;</span>
+            </p>
+          </div>
+          <div class="date-badge" id="currentDateBadge">
+            <span class="calendar-icon">&#128197;</span>
+            <span id="dateText">Tue, 11 Nov 2025</span>
+          </div>
+        </section>
+
+        <!-- 3 SUMMARY CARDS -->
+        <section class="summary-cards-row">
+          <!-- Total Income Card -->
+          <div class="stat-card card-income">
+            <div class="stat-icon-circle icon-green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <rect x="2" y="5" width="20" height="14" rx="3"/>
+                <line x1="2" y1="10" x2="22" y2="10"/>
+                <circle cx="16" cy="14" r="1.5" fill="currentColor"/>
+              </svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-label">Total Income</span>
+              <span class="stat-value val-income" id="totalIncomeVal">&#8377; 0</span>
+            </div>
+          </div>
+
+          <!-- Total Expense Card -->
+          <div class="stat-card card-expense">
+            <div class="stat-icon-circle icon-pink">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M20 12V8H6a2 2 0 0 1-2-2V4"/>
+                <rect x="4" y="6" width="16" height="14" rx="2"/>
+                <path d="M12 16l4-4-4-4"/>
+                <line x1="8" y1="12" x2="16" y2="12"/>
+              </svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-label">Total Expense</span>
+              <span class="stat-value val-expense" id="totalExpenseVal">&#8377; 0</span>
+            </div>
+          </div>
+
+          <!-- Balance Card -->
+          <div class="stat-card card-balance">
+            <div class="stat-icon-circle icon-purple">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M19 5c-1.5 0-2.8 1.2-3 2.7-.8-.4-1.8-.7-3-.7-3.9 0-7 2.7-7 6 0 1.2.4 2.3 1.1 3.2L6 20h3l1.2-2.1c.9.2 1.8.3 2.8.3 3.9 0 7-2.7 7-6 0-.6-.1-1.2-.3-1.8 1.4-.4 2.3-1.6 2.3-3.1 0-1.2-.7-2.3-1.7-2.7z"/>
+                <circle cx="14" cy="11" r="1" fill="currentColor"/>
+              </svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-label">Balance</span>
+              <span class="stat-value val-balance" id="totalBalanceVal">&#8377; 0</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- MIDDLE ROW: Overview Chart + Motivation Card -->
+        <section class="middle-grid-row">
+          <!-- Expense Overview Card -->
+          <div class="panel-card chart-panel">
+            <div class="panel-header">
+              <div class="panel-title-left">
+                <span class="panel-icon">&#128200;</span>
+                <h3>Expense Overview</h3>
+              </div>
+              <div class="chart-header-right">
+                <div class="chart-view-toggle">
+                  <button type="button" class="btn-chart-mode active" id="btnChartMonthly">Monthly</button>
+                  <button type="button" class="btn-chart-mode" id="btnChartCumulative">Cumulative</button>
+                </div>
+                <div class="chart-legend">
+                  <span class="legend-item"><span class="legend-dot dot-income"></span> Income</span>
+                  <span class="legend-item"><span class="legend-dot dot-expense"></span> Expense</span>
+                </div>
+              </div>
+            </div>
+            <div class="chart-container" style="position: relative;">
+              <canvas id="overviewChartCanvas" width="620" height="210"></canvas>
+              <div class="chart-tooltip" id="chartTooltip" style="display: none;"></div>
+            </div>
+          </div>
+
+          <!-- Cute Savings / Motivation Card -->
+          <div class="panel-card motivation-panel">
+            <div class="motivation-quote">
+              <p class="quote-cursive">
+                &ldquo;Small steps<br>
+                make a big<br>
+                difference!&rdquo; &#9825;
+              </p>
+            </div>
+            <div class="money-jar-art">
+              <svg viewBox="0 0 140 160" class="jar-svg">
+                <!-- Sprouting Plant -->
+                <path d="M 70 55 C 65 35 45 28 35 32 C 38 48 56 50 68 55" fill="#4ade80" stroke="#16a34a" stroke-width="1.5"/>
+                <path d="M 70 55 C 75 30 100 24 108 30 C 104 46 84 50 72 55" fill="#22c55e" stroke="#16a34a" stroke-width="1.5"/>
+                <path d="M 70 52 L 70 68" stroke="#15803d" stroke-width="3" stroke-linecap="round"/>
+                <!-- Jar Rim -->
+                <ellipse cx="70" cy="68" rx="30" ry="6" fill="#c7d2fe" stroke="#818cf8" stroke-width="2"/>
+                <path d="M 40 68 L 44 80 L 96 80 L 100 68 Z" fill="#e0e7ff" stroke="#818cf8" stroke-width="1.5"/>
+                <!-- Jar Body (Glass with reflections) -->
+                <path d="M 44 80 C 30 90 28 140 38 152 C 45 158 95 158 102 152 C 112 140 110 90 96 80 Z" fill="rgba(224, 231, 255, 0.45)" stroke="#818cf8" stroke-width="2"/>
+                <!-- Gold Coins Inside Jar -->
+                <ellipse cx="70" cy="144" rx="24" ry="7" fill="#f59e0b" stroke="#d97706" stroke-width="1.5"/>
+                <ellipse cx="64" cy="136" rx="20" ry="6" fill="#fbbf24" stroke="#d97706" stroke-width="1.5"/>
+                <ellipse cx="76" cy="128" rx="22" ry="6.5" fill="#fcd34d" stroke="#d97706" stroke-width="1.5"/>
+                <ellipse cx="68" cy="120" rx="21" ry="6" fill="#fbbf24" stroke="#d97706" stroke-width="1.5"/>
+                <ellipse cx="72" cy="112" rx="19" ry="5.5" fill="#fcd34d" stroke="#d97706" stroke-width="1.5"/>
+                <ellipse cx="66" cy="104" rx="18" ry="5.5" fill="#fbbf24" stroke="#d97706" stroke-width="1.5"/>
+                <ellipse cx="70" cy="96" rx="16" ry="5" fill="#fef08a" stroke="#d97706" stroke-width="1.5"/>
+                <!-- Glass Light Shimmer -->
+                <path d="M 38 95 Q 35 125 45 146" stroke="white" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.6"/>
+                <!-- Purple Botanical Accents -->
+                <path d="M 10 155 Q 30 135 45 155 Z" fill="#9d7af0" opacity="0.4"/>
+                <path d="M 95 155 Q 120 130 135 155 Z" fill="#8459e8" opacity="0.4"/>
+              </svg>
+            </div>
+          </div>
+        </section>
+
+        <!-- BOTTOM SECTION: Recent Transactions -->
+        <section class="panel-card transactions-panel">
+          <div class="panel-header">
+            <div class="panel-title-left">
+              <span class="panel-icon">&#128197;</span>
+              <h3>Recent Transactions</h3>
+            </div>
+            <button class="btn-pill-viewall" id="btnViewAll">
+              View All <span class="arrow-right">&rarr;</span>
+            </button>
+          </div>
+
+          <div class="transactions-table-wrap">
+            <table class="transactions-table">
+              <thead>
+                <tr>
+                  <th style="width: 22%;">Date</th>
+                  <th style="width: 40%;">Description</th>
+                  <th style="width: 18%;">Type</th>
+                  <th style="width: 20%; text-align: right;">Amount</th>
+                </tr>
+              </thead>
+              <tbody id="recentTransactionsBody">
+                <!-- Rendered dynamically by app.js (Empty state by default) -->
+              </tbody>
+            </table>
+
+            <!-- Exact Empty State matching the screenshot -->
+            <div class="empty-state-wrap" id="emptyStateWrap">
+              <div class="empty-wallet-art">
+                <svg viewBox="0 0 100 70" class="empty-wallet-svg">
+                  <!-- Motion Rays -->
+                  <line x1="18" y1="28" x2="10" y2="24" stroke="#9d7af0" stroke-width="2" stroke-linecap="round"/>
+                  <line x1="20" y1="36" x2="12" y2="38" stroke="#9d7af0" stroke-width="2" stroke-linecap="round"/>
+                  <line x1="82" y1="28" x2="90" y2="24" stroke="#9d7af0" stroke-width="2" stroke-linecap="round"/>
+                  <line x1="80" y1="36" x2="88" y2="38" stroke="#9d7af0" stroke-width="2" stroke-linecap="round"/>
+                  <!-- Sparkle Star -->
+                  <polygon points="50,6 52,14 60,16 52,18 50,26 48,18 40,16 48,14" fill="#fbbf24"/>
+                  <!-- Cute Purple Wallet -->
+                  <rect x="24" y="20" width="52" height="38" rx="8" fill="#7c43ea" stroke="#5b21b6" stroke-width="2"/>
+                  <path d="M 24 28 C 24 24, 28 20, 32 20 L 68 20 C 72 20, 76 24, 76 28 L 76 34 L 24 34 Z" fill="#9d74f7"/>
+                  <circle cx="64" cy="39" r="4.5" fill="#fde047" stroke="#ca8a04" stroke-width="1.5"/>
+                </svg>
+              </div>
+              <h4 class="empty-title">No transactions yet!</h4>
+              <p class="empty-subtitle">Start adding your expenses.</p>
+              <button class="btn-primary-add" id="btnEmptyAdd">
+                <span>+</span> Add Your First Expense
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- 1. ADD / EDIT TRANSACTION MODAL -->
+  <div class="modal-backdrop" id="modalAddExpense">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modalFormTitle">&#10024; Add Transaction</h3>
+        <button class="modal-close-btn" data-close="modalAddExpense">&times;</button>
+      </div>
+      <form id="expenseForm">
+        <input type="hidden" id="editExpenseId">
+        
+        <!-- Income / Expense Toggle -->
+        <div class="form-group">
+          <label>Transaction Type</label>
+          <div class="type-toggle-group">
+            <button type="button" class="btn-toggle active" id="btnTypeExpense" data-type="Expense">
+              &#128184; Expense
+            </button>
+            <button type="button" class="btn-toggle" id="btnTypeIncome" data-type="Income">
+              &#128176; Income
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="inputTitle">Title / Description *</label>
+          <input type="text" id="inputTitle" placeholder="e.g., Grocery Shopping, Bus Ticket, Coffee" required>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="inputAmount">Amount (&#8377;) *</label>
+            <input type="number" id="inputAmount" placeholder="0" min="0" step="any" required>
+          </div>
+          <div class="form-group">
+            <label for="inputDate">Date *</label>
+            <input type="date" id="inputDate" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="inputCategory">Category *</label>
+          <select id="inputCategory" required>
+            <option value="Food">&#127828; Food & Dining</option>
+            <option value="Travel">&#128652; Travel & Transport</option>
+            <option value="Shopping">&#128722; Shopping</option>
+            <option value="Bills">&#128161; Bills & Utilities</option>
+            <option value="Entertainment">&#127916; Entertainment</option>
+            <option value="Health">&#127973; Health & Medical</option>
+            <option value="Education">&#128218; Education</option>
+            <option value="Salary">&#128188; Salary & Earnings</option>
+            <option value="Investment">&#128200; Investment</option>
+            <option value="Other">&#127991;&#65039; Other</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" data-close="modalAddExpense">Cancel</button>
+          <button type="submit" class="btn-primary" id="btnSaveTransaction">Save Transaction</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. VIEW ALL TRANSACTIONS MODAL -->
+  <div class="modal-backdrop" id="modalViewExpenses">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <h3>&#128065; All Transactions (<span id="viewAllCount">0</span>)</h3>
+        <button class="modal-close-btn" data-close="modalViewExpenses">&times;</button>
+      </div>
+      <div class="modal-toolbar">
+        <input type="text" id="viewSearchInput" placeholder="&#128269; Filter by description or ID..." class="toolbar-search">
+        <select id="viewFilterCategory" class="toolbar-select">
+          <option value="ALL">All Categories</option>
+          <option value="Food">Food</option>
+          <option value="Travel">Travel</option>
+          <option value="Shopping">Shopping</option>
+          <option value="Bills">Bills</option>
+          <option value="Entertainment">Entertainment</option>
+          <option value="Health">Health</option>
+          <option value="Education">Education</option>
+          <option value="Salary">Salary</option>
+          <option value="Other">Other</option>
+        </select>
+        <select id="viewFilterType" class="toolbar-select">
+          <option value="ALL">All Types</option>
+          <option value="Expense">Expense Only</option>
+          <option value="Income">Income Only</option>
+        </select>
+        <button class="btn-secondary" id="btnExportCsv">&#128190; Export CSV</button>
+      </div>
+      <div class="modal-table-scroll">
+        <table class="transactions-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Category</th>
+              <th>Type</th>
+              <th style="text-align: right;">Amount</th>
+              <th style="text-align: center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="viewAllTableBody"></tbody>
+        </table>
+      </div>
+      <div class="modal-actions" style="margin-top: 14px;">
+        <button type="button" class="btn-secondary" data-close="modalViewExpenses">Close</button>
+        <button type="button" class="btn-primary" onclick="openAddModal()">+ Add New</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. SEARCH EXPENSE MODAL -->
+  <div class="modal-backdrop" id="modalSearchExpense">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>&#128269; Search Expenses</h3>
+        <button class="modal-close-btn" data-close="modalSearchExpense">&times;</button>
+      </div>
+      <div class="search-box-wrap">
+        <input type="text" id="liveSearchInput" placeholder="Type ID, Title, or Category (e.g., Bus, Food, 1)..." autofocus>
+      </div>
+      <div class="search-results-list" id="searchResultsList">
+        <p class="search-hint">Type above to see matching records instantly.</p>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" data-close="modalSearchExpense">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. DELETE CONFIRMATION MODAL -->
+  <div class="modal-backdrop" id="modalDeleteExpense">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>&#128465; Delete Expense</h3>
+        <button class="modal-close-btn" data-close="modalDeleteExpense">&times;</button>
+      </div>
+      <p style="margin-bottom: 12px; color: #4b5563;">Select transaction to delete or enter ID:</p>
+      <div class="form-group">
+        <select id="deleteSelectId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 0.95rem;">
+          <option value="">-- Choose Transaction to Delete --</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" data-close="modalDeleteExpense">Cancel</button>
+        <button type="button" class="btn-danger" id="btnConfirmDelete">Delete Transaction</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. TOTAL & ANALYTICS MODAL -->
+  <div class="modal-backdrop" id="modalTotalExpense">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>&#128200; Expense Analytics & Summary</h3>
+        <button class="modal-close-btn" data-close="modalTotalExpense">&times;</button>
+      </div>
+      <div class="analytics-summary-box">
+        <div class="analytics-stat">
+          <span class="lbl">Total Income</span>
+          <span class="val green" id="anaTotalIncome">&#8377; 0</span>
+        </div>
+        <div class="analytics-stat">
+          <span class="lbl">Total Expense</span>
+          <span class="val red" id="anaTotalExpense">&#8377; 0</span>
+        </div>
+        <div class="analytics-stat">
+          <span class="lbl">Net Savings</span>
+          <span class="val purple" id="anaNetBalance">&#8377; 0</span>
+        </div>
+      </div>
+
+      <!-- Highest Expense Spotlight -->
+      <div class="highest-expense-card" id="highestExpenseCard">
+        <div class="highest-badge">&#127942; Highest Single Expense</div>
+        <div class="highest-details">
+          <h4 id="highestTitle">None recorded yet</h4>
+          <span class="highest-amount" id="highestAmount">&#8377; 0</span>
+        </div>
+        <p class="highest-sub" id="highestMeta">Category: - | Date: -</p>
+      </div>
+
+      <!-- Category Breakdown Progress Bars -->
+      <h4 style="margin-top: 16px; margin-bottom: 8px; color: #374151; font-size: 0.95rem;">Category Spending Breakdown:</h4>
+      <div class="category-bars-wrap" id="categoryBarsWrap">
+        <p style="color: #9ca3af; font-size: 0.85rem;">No expense categories recorded yet.</p>
+      </div>
+
+      <div class="modal-actions" style="margin-top: 16px;">
+        <button type="button" class="btn-primary" data-close="modalTotalExpense">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
